@@ -3,7 +3,8 @@
 <suite name="All Tests">
     <test verbose="2" name="All tests">
         <classes>
-            <class name="it.cdc.be.webscraper.WebScraperApplicationTests"/>
+            <class name="it.cdc.be.webscraper.WebScraperApplicationTests" />
+            <class name="it.cdc.be.webscraper.ScraperServiceTests" />
         </classes>
     </test>
 </suite>

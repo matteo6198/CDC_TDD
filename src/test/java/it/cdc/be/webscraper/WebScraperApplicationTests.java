@@ -7,6 +7,8 @@ import org.testng.annotations.Test;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class WebScraperApplicationTests extends AbstractTestNGSpringContextTests {
 
+
+
 	@Test()
 	void contextLoads() {
 	}
