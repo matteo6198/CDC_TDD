@@ -2,6 +2,8 @@ package it.cdc.be.webscraper;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import it.cdc.be.webscraper.dto.domain.ScrapedData;
+import it.cdc.be.webscraper.layers.service.WebScraperService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -13,6 +15,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
@@ -23,21 +26,21 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
     private static final WireMockServer wireMockServer = new WireMockServer(options().port(9000));
 
     @Autowired
-    ScrapingService scrapingService;
+    WebScraperService scrapingService;
 
     @DynamicPropertySource
     public static void properties(DynamicPropertyRegistry registry){
         wireMockServer.start();
-        configureFor("localhost", 9000);
+        configureFor("pay.com", 80);
 
-        registry.add("scraper.urls", ()->"localhost:9000/index.html");
+        registry.add("scraper.urls", ()->"https://pay.com/blog");
     }
 
     @BeforeClass()
     void init() throws IOException {
         // init wiremock to provide sample data
         WireMock.stubFor(
-                WireMock.get("/site1/index.html")
+                WireMock.get("/blog")
                         .willReturn(
                                 WireMock.aResponse()
                                         .withStatus(200)
@@ -72,7 +75,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         }
 
         // ensure that the data retrieved are stored
-        List<ScrapedData> scrapedDataList;
+        List<ScrapedData> scrapedDataList = null;
         try{
             scrapedDataList = scrapingService.getAllData();
         }catch (Exception e){
@@ -80,7 +83,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         }
 
         Assert.assertNotNull(scrapedDataList);
-        Assert.assertTrue(scrapedDataList.size() == 12 + 8);
+        Assert.assertEquals(scrapedDataList.size(), 12 + 8);
 
         //TODO check that all elements that should be in the list are present
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
