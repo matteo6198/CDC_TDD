@@ -4,16 +4,24 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import it.cdc.be.webscraper.dto.domain.ScrapedData;
-import it.cdc.be.webscraper.dto.domain.WebsiteType;
+import it.cdc.be.webscraper.dto.domain.Selector;
 import it.cdc.be.webscraper.layers.service.WebScraperService;
+import it.cdc.be.webscraper.repository.ScraperRepository;
+import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
+import it.cdc.be.webscraper.utils.ScraperUtils;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class WebScraperServiceImpl implements WebScraperService {
@@ -21,6 +29,12 @@ public class WebScraperServiceImpl implements WebScraperService {
 
     @Value("#{'${scraper.urls}'.split(';\\s*')}")
     private List<String> urlsToBeScraped;
+
+    @Autowired
+    private ScraperRepository scraperRepository;
+
+    @Autowired
+    private ScraperUtils scraperUtils;
 
     private WebClient webClient;
 
@@ -33,6 +47,8 @@ public class WebScraperServiceImpl implements WebScraperService {
 
     @Override
     public void getNewData() {
+        List<ScrapedDataEntity> dataToBeStored = new ArrayList<>();
+
         for(String url:urlsToBeScraped){
             logger.debug("Scrpaing url: " + url);
 
@@ -49,18 +65,35 @@ public class WebScraperServiceImpl implements WebScraperService {
                 continue;
             }
 
-            List<ScrapedData> scrapedDataList = parsePage(page, WebsiteType.getFromUrl(url));
+            Selector selector = scraperUtils.getWebsiteSelectorsFromUrl(url);
+            List<ScrapedData> scrapedDataList = parsePage(page, selector);
 
-            // TODO save data somewhere
+            dataToBeStored.addAll(scrapedDataList.stream().map(d->{
+                ScrapedDataEntity entity = new ScrapedDataEntity();
+
+                BeanUtils.copyProperties(d, entity);
+                entity.setWebsite(selector.getKey());
+
+                return entity;
+            }).collect(Collectors.toList()));
+
         }
+
+        scraperRepository.saveAll(dataToBeStored);
     }
 
     @Override
-    public List<ScrapedData> getAllData() {
-        return null;
+    public List<ScrapedData> getAllData(List<String> filters) {
+        List<ScrapedDataEntity> allData = scraperRepository.findAll();
+        return allData.stream().map(d->{
+            ScrapedData data = new ScrapedData();
+            BeanUtils.copyProperties(d, data);
+
+            return data;
+        }).collect(Collectors.toList());
     }
 
-    private List<ScrapedData> parsePage(HtmlPage page, WebsiteType type) {
+    private List<ScrapedData> parsePage(HtmlPage page, Selector type) {
         if(type == null){
             logger.error("Null type");
             return new ArrayList<>();
@@ -68,16 +101,30 @@ public class WebScraperServiceImpl implements WebScraperService {
 
         List<ScrapedData> scrapedDataList = new ArrayList<>();
 
-        List<HtmlElement> elements = page.getByXPath(type.getItemsSelector());
+        List<HtmlElement> elements = page.getByXPath(type.getItems());
         for(HtmlElement el: elements){
-            String link = el.getFirstByXPath(type.getLinkSelector());
-            String title = el.getFirstByXPath(type.getTitleSelector());
-            String image = el.getFirstByXPath(type.getImageSelector());
+            String title = ((HtmlElement)el.getFirstByXPath(type.getTitle())).getVisibleText();
+            String image = null;
+            if(type.getImage() != null && !type.getBody().isBlank())
+                image = ((HtmlElement)el.getFirstByXPath(type.getImage())).getAttribute("href");
+
+            String link = ((HtmlElement)el.getFirstByXPath(type.getLink())).getAttribute(("href"));
+            String date = ((HtmlElement)el.getFirstByXPath(type.getDate())).getVisibleText();
+            String body = null;
+            if(type.getBody() != null && !type.getBody().isBlank()) {
+                body = ((HtmlElement) el.getFirstByXPath(type.getBody())).getVisibleText();
+                if(body != null){
+                    body = body.substring(0,Math.min(200, body.length()));
+                }
+            }
+
 
             ScrapedData data = new ScrapedData();
             data.setImageUrl(image);
             data.setTitle(title);
             data.setLink(link);
+            data.setBody(body);
+            data.setDateArticle(LocalDate.parse(date, DateTimeFormatter.ofPattern(type.getDateFormatter())));
 
             scrapedDataList.add(data);
         }

@@ -37,3 +37,6 @@ build/
 .mvn/
 mvnw
 mvnw.cmd
+
+### DB ###
+/sqlite_cdc_tdd.db

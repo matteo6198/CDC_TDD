@@ -1,14 +1,32 @@
-package it.cdc.be.webscraper.dto.domain;
+package it.cdc.be.webscraper.repository.entity;
+
+
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
-public class ScrapedData {
+@Entity
+@Table(name = "SCRAPED_DATA")
+public class ScrapedDataEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
     private String website;
     private String title;
     private LocalDate dateArticle;
     private String link;
     private String body;
     private String imageUrl;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getWebsite() {
         return website;

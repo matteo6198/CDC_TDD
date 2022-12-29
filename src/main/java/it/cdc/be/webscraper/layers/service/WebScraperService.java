@@ -7,5 +7,5 @@ import java.util.List;
 public interface WebScraperService {
     void getNewData();
 
-    List<ScrapedData> getAllData();
+    List<ScrapedData> getAllData(List<String> filters);
 }
