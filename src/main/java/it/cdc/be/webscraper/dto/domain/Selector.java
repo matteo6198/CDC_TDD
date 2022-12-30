@@ -8,6 +8,8 @@ public class Selector {
     private String items;
     private String date;
     private String dateFormatter;
+    private String dateLocale;
+    private String category;
     private String body;
     private String key;
 
@@ -65,6 +67,22 @@ public class Selector {
 
     public void setDateFormatter(String dateFormatter) {
         this.dateFormatter = dateFormatter;
+    }
+
+    public String getDateLocale() {
+        return dateLocale;
+    }
+
+    public void setDateLocale(String dateLocale) {
+        this.dateLocale = dateLocale;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public String getBody() {

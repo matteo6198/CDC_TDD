@@ -1,6 +1,8 @@
 package it.cdc.be.webscraper.dto.domain;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 public class ScrapedData {
     private String website;
@@ -9,6 +11,7 @@ public class ScrapedData {
     private String link;
     private String body;
     private String imageUrl;
+    private String category;
 
     public String getWebsite() {
         return website;
@@ -56,5 +59,39 @@ public class ScrapedData {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    @Override
+    public String toString() {
+        return "ScrapedData{" +
+                "website='" + website + '\'' +
+                ", title='" + title + '\'' +
+                ", dateArticle=" + dateArticle.format(DateTimeFormatter.ISO_DATE) +
+                ", link='" + link + '\'' +
+                ", body='" + body + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", category='" + category + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ScrapedData data = (ScrapedData) o;
+        return website.equals(data.website) && title.equals(data.title) && (dateArticle == null || data.dateArticle == null || dateArticle.format(DateTimeFormatter.ISO_DATE).equals(data.dateArticle.format(DateTimeFormatter.ISO_DATE))) && link.equals(data.link) && Objects.equals(body, data.body) && Objects.equals(imageUrl, data.imageUrl) && Objects.equals(category, data.category);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(website, title, dateArticle, link, body, imageUrl, category);
     }
 }

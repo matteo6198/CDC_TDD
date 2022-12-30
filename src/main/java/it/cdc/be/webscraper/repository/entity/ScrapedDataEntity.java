@@ -19,6 +19,7 @@ public class ScrapedDataEntity {
     private String link;
     private String body;
     private String imageUrl;
+    private String category;
 
     public Long getId() {
         return id;
@@ -74,5 +75,13 @@ public class ScrapedDataEntity {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }

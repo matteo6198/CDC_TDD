@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS "CDC"."SCRAPED_DATA"
     link text COLLATE pg_catalog."default" NOT NULL,
     body text COLLATE pg_catalog."default",
     image_url text COLLATE pg_catalog."default",
+    category text COLLATE pg_catalog."default",
     CONSTRAINT "SCRAPED_DATA_pkey" PRIMARY KEY ("ID")
 )
