@@ -79,7 +79,7 @@ public class WebScraperServiceImpl implements WebScraperService {
                 entity.setWebsite(selector.getKey());
 
                 return entity;
-            }).collect(Collectors.toSet()));
+            }).collect(Collectors.toList()));
 
         }
 
@@ -90,10 +90,12 @@ public class WebScraperServiceImpl implements WebScraperService {
                 .collect(Collectors.toList());
 
         // filter out already present data
-        List<ScrapedDataEntity> dataToBeStored = scrapedDataEntities.stream().filter(d -> {
-            String key = d.getLink() + d.getTitle() + d.getWebsite();
-            return !urlsToBeIgnored.contains(key);
-        }).collect(Collectors.toList());
+        List<ScrapedDataEntity> dataToBeStored = scrapedDataEntities.stream()
+                .filter(d -> {
+                    String key = d.getLink() + d.getTitle() + d.getWebsite();
+                    return !urlsToBeIgnored.contains(key);
+                }).distinct()
+                .collect(Collectors.toList());
 
         scraperRepository.saveAll(dataToBeStored);
     }

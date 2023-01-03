@@ -87,11 +87,11 @@ public class ScrapedData {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ScrapedData data = (ScrapedData) o;
-        return website.equals(data.website) && title.equals(data.title) && (dateArticle == null || data.dateArticle == null || dateArticle.format(DateTimeFormatter.ISO_DATE).equals(data.dateArticle.format(DateTimeFormatter.ISO_DATE))) && link.equals(data.link) && Objects.equals(body, data.body) && Objects.equals(imageUrl, data.imageUrl) && Objects.equals(category, data.category);
+        return website.equals(data.website) && title.equals(data.title) && link.equals(data.link);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(website, title, dateArticle, link, body, imageUrl, category);
+        return Objects.hash(website, title, link);
     }
 }

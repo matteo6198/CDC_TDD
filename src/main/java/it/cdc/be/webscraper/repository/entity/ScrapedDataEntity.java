@@ -4,6 +4,7 @@ package it.cdc.be.webscraper.repository.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Entity
 @Table(name = "SCRAPED_DATA")
@@ -83,5 +84,30 @@ public class ScrapedDataEntity {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    @Override
+    public String toString() {
+        return "ScrapedDataEntity{" +
+                "website='" + website + '\'' +
+                ", title='" + title + '\'' +
+                ", link='" + link + '\'' +
+                ", body='" + body + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", category='" + category + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ScrapedDataEntity entity = (ScrapedDataEntity) o;
+        return website.equals(entity.website) && title.equals(entity.title) && link.equals(entity.link);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(website, title, link);
     }
 }
