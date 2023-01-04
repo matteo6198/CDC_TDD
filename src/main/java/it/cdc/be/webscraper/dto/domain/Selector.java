@@ -11,6 +11,7 @@ public class Selector {
     private String dateLocale;
     private String category;
     private String body;
+    private String nextPage;
     private String key;
 
     public String getUrl() {
@@ -99,5 +100,13 @@ public class Selector {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public String getNextPage() {
+        return nextPage;
+    }
+
+    public void setNextPage(String nextPage) {
+        this.nextPage = nextPage;
     }
 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -37,9 +38,11 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
     @Autowired
     ScraperRepository scraperRepository;
 
+    @SuppressWarnings("unused")
     @Resource(name = "WebsiteSelectorModel")
     private WebsiteSelectorModel websiteSelectorModel;
 
+    @SuppressWarnings("rawtypes")
     private static final PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres:latest");
 
     @DynamicPropertySource
@@ -47,6 +50,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         wireMockServer.start();
         configureFor("localhost", 9000);
 
+        // override variables in properties for tests
         registry.add("scraper.urls", ()->"http://localhost:9000/it_it/tag/innovative-payments;http://localhost:9000/payment-innovation;http://localhost:9000/payment-services;http://localhost:9000/mobile-app;http://localhost:9000/digital-economy;http://localhost:9000/sez/tecnologia/fintech;http://localhost:9000/category/mobile-payments;http://localhost:9000/digital-payments/articles");
         registry.add("website.map.blog_osservatori.url", ()->"http://localhost:9000/it_it/tag/innovative-payments");
         registry.add("website.map.pagamentidigitali_innovation.url", ()->"http://localhost:9000/payment-innovation");
@@ -56,6 +60,10 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         registry.add("website.map.sole24ore.url", ()->"http://localhost:9000/sez/tecnologia/fintech");
         registry.add("website.map.paymentscardsandmobile.url", ()->"http://localhost:9000/category/mobile-payments");
         registry.add("website.map.fintechmagazine.url", ()->"http://localhost:9000/digital-payments/articles");
+
+        registry.add("scraper.page.limit", ()->"10");
+
+        // database set
         postgreSQLContainer.start();
         System.out.println(postgreSQLContainer.getJdbcUrl());
         registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
@@ -92,6 +100,10 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         WireMock.stubFor(WireMock.get("/sez/tecnologia/fintech").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6.html")).readAllBytes(), StandardCharsets.UTF_8)))
+        );
+        WireMock.stubFor(WireMock.get("/archivi/tecnologia/fintech/1").willReturn(
+                WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
+                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6_1.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
         WireMock.stubFor(WireMock.get("/category/mobile-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
@@ -545,5 +557,39 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
                                 el.getWebsite().equals("fintechmagazine")
                 )
         );
+    }
+
+    @Test(dependsOnMethods = {"checkServiceDoesNotDuplicateData", "checkScrapingWorks"})
+    void testGoesToNextPage(){
+        if(scraperRepository.count() == 0)
+            scrapingService.getNewData();
+
+        Set<String> localUrls;
+        try {
+            String file = new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("local_url.txt")).readAllBytes());
+            localUrls = file.lines().collect(Collectors.toSet());
+        }catch (Exception e){
+            Assert.fail("Can't read local urls file", e);
+            return;
+        }
+
+        List<ScrapedDataEntity> dataEntityList = scraperRepository.findAll();
+
+        // removing local website elements
+        Map<String,List<ScrapedDataEntity>> filteredDataMap = dataEntityList.stream().filter(el->!localUrls.contains(el.getLink())).collect(Collectors.groupingBy(ScrapedDataEntity::getWebsite));
+        // debug only
+        // filteredDataMap.values().stream().flatMap(Collection::stream).sorted(Comparator.comparing(ScrapedDataEntity::getLink)).forEach(el->logger.error(el.toString()));
+        Assert.assertTrue(filteredDataMap.values().stream().mapToLong(Collection::size).sum() > 0);
+
+        // check read next pages for all websites
+        for(String el:websiteSelectorModel.getMap().keySet()){
+            if(el.equals("fintechmagazine"))        // skip fintechmagazine because it has not next pages
+                continue;
+            Assert.assertTrue(filteredDataMap.containsKey(el), "Website "+el+" not present");
+            Assert.assertFalse(filteredDataMap.get(el).isEmpty());
+            for(String url: filteredDataMap.get(el).stream().map(ScrapedDataEntity::getLink).collect(Collectors.toList())){
+                Assert.assertFalse(localUrls.contains(url));
+            }
+        }
     }
 }

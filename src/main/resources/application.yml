@@ -1,4 +1,6 @@
-scraper.urls: https://blog.osservatori.net/it_it/tag/innovative-payments;https://www.pagamentidigitali.it/payment-innovation/;https://www.pagamentidigitali.it/payment-services/;https://www.pagamentidigitali.it/mobile-app/;https://www.corrierecomunicazioni.it/digital-economy/;https://www.ilsole24ore.com/sez/tecnologia/fintech;https://www.paymentscardsandmobile.com/category/mobile-payments/;https://fintechmagazine.com/digital-payments/articles
+scraper:
+  urls: https://blog.osservatori.net/it_it/tag/innovative-payments;https://www.pagamentidigitali.it/payment-innovation/;https://www.pagamentidigitali.it/payment-services/;https://www.pagamentidigitali.it/mobile-app/;https://www.corrierecomunicazioni.it/digital-economy/;https://www.ilsole24ore.com/sez/tecnologia/fintech;https://www.paymentscardsandmobile.com/category/mobile-payments/;https://fintechmagazine.com/digital-payments/articles
+  page.limit: 100
 
 spring:
   datasource:
@@ -21,6 +23,7 @@ website:
       dateLocale: en
       category: ".//p[contains(@id,'hubspot-topic_data')]"
       body: ".//div[contains(@class,'post-body')]"
+      nextPage: "//a[@class ='next-link']"
       key: "blog_osservatori"
     pagamentidigitali_innovation:
       url: "https://www.pagamentidigitali.it/payment-innovation/"
@@ -33,6 +36,7 @@ website:
       dateLocale: it
       category: ".//div[contains(@class,'mh-image-caption')]"
       body: ".//div[contains(@class,'mh-excerpt')]"
+      nextPage: "//a[@class = 'next page-numbers']"
       key: "pagamentidigitali_innovation"
     pagamentidigitali_services:
       url: "https://www.pagamentidigitali.it/payment-services/"
@@ -45,6 +49,7 @@ website:
       dateLocale: it
       category: ""
       body: ".//div[contains(@class,'mh-excerpt')]"
+      nextPage: "//a[@class = 'next page-numbers']"
       key: "pagamentidigitali_services"
     pagamentidigitali_mobile:
       url: "https://www.pagamentidigitali.it/mobile-app/"
@@ -57,6 +62,7 @@ website:
       dateLocale: it
       category: ".//div[contains(@class,'mh-image-caption')]"
       body: ".//div[contains(@class,'mh-excerpt')]"
+      nextPage: "//a[@class = 'next page-numbers']"
       key: "pagamentidigitali_mobile"
     corriere:
       url: "https://www.corrierecomunicazioni.it/digital-economy/"
@@ -69,6 +75,7 @@ website:
       dateLocale: it
       category: ".//h4[contains(@class,'card-post__occhiello')]|.//p[contains(@class,'occhiello')]"
       body: ""
+      nextPage: "//div[contains(@class,'pagination-box')]/a[./i[contains(@data-icon,'keyboard_arrow_right')]]"
       key: "corriere"
     sole24ore:
       url: "https://www.ilsole24ore.com/sez/tecnologia/fintech"
@@ -81,6 +88,7 @@ website:
       dateLocale: it
       category: ".//p[contains(@class,'meta')]//a"
       body: ""
+      nextPage: "//a[@class = 'pager-link '][./span[contains(@class,'icon-arrow-right')]]|//div[@class = 'text-right']/a[@class = 'btn btn--big']"
       key: "sole24ore"
     paymentscardsandmobile:
       url: "https://www.paymentscardsandmobile.com/category/mobile-payments/"
@@ -93,6 +101,7 @@ website:
       dateLocale: en
       category: ""
       body: ".//p[contains(@class,'news_excerpt')]"
+      nextPage: "//div[@class = 'pagination']/ul/li[last() - 1]/a"
       key: "paymentscardsandmobile"
     fintechmagazine:
       url: "https://fintechmagazine.com/digital-payments/articles"
@@ -105,5 +114,6 @@ website:
       dateLocale: it
       category: ""
       body: ".//div[contains(@class,'Card_CardDescription')]//p"
+      nextPage: "//button[contains(@class, 'ButtonBase_ButtonBase')]/span/div[contains(., 'More')]"
       key: "fintechmagazine"
 

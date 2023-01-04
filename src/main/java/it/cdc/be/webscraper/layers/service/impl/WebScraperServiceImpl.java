@@ -21,10 +21,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +30,9 @@ public class WebScraperServiceImpl implements WebScraperService {
 
     @Value("#{'${scraper.urls}'.split(';\\s*')}")
     private List<String> urlsToBeScraped;
+
+    @Value("${scraper.page.limit:300}")
+    private Long scraperPageLimit;
 
     @Autowired
     private ScraperRepository scraperRepository;
@@ -54,7 +54,9 @@ public class WebScraperServiceImpl implements WebScraperService {
         List<ScrapedDataEntity> scrapedDataEntities = new ArrayList<>();
 
         for(String url:urlsToBeScraped){
+            long cnt = 0;
             logger.debug("Scrpaing url: " + url);
+            final Selector selector = scraperUtils.getWebsiteSelectorsFromUrl(url);
 
             HtmlPage page;
             try {
@@ -69,18 +71,48 @@ public class WebScraperServiceImpl implements WebScraperService {
                 continue;
             }
 
-            Selector selector = scraperUtils.getWebsiteSelectorsFromUrl(url);
-            List<ScrapedData> scrapedDataList = parsePage(page, selector);
+            HtmlElement nextPageLink;
+            Set<String> alreadyVisited = new HashSet<>();
+            alreadyVisited.add(page.getUrl().toString());
 
-            scrapedDataEntities.addAll(scrapedDataList.stream().map(d->{
-                ScrapedDataEntity entity = new ScrapedDataEntity();
+            while(true) {
+                if(cnt > scraperPageLimit)
+                    break;
 
-                BeanUtils.copyProperties(d, entity);
-                entity.setWebsite(selector.getKey());
+                List<ScrapedData> scrapedDataList = parsePage(page, selector);
 
-                return entity;
-            }).collect(Collectors.toList()));
+                scrapedDataEntities.addAll(scrapedDataList.stream().map(d -> {
+                    ScrapedDataEntity entity = new ScrapedDataEntity();
 
+                    BeanUtils.copyProperties(d, entity);
+                    entity.setWebsite(selector.getKey());
+
+                    return entity;
+                }).collect(Collectors.toList()));
+
+                nextPageLink = page.getFirstByXPath(selector.getNextPage());
+                if(nextPageLink == null) {
+                    logger.info("Next page link not found for website {}", selector.getKey());
+                    break;
+                }
+
+                String nextUrl = nextPageLink.getAttribute("href");
+                if(alreadyVisited.contains(nextUrl)){
+                    break;
+                }
+
+                try {
+                    page = nextPageLink.click();
+                    logger.debug("{}", nextUrl);
+                }catch (Exception e){
+                    logger.info("finished website {} on url {}", selector.getKey(), page.getUrl(), e);
+                    break;
+                }
+
+                alreadyVisited.add(nextUrl);
+                cnt++;
+            }
+            logger.info("Scraped {} pages for website {}", cnt, selector.getKey());
         }
 
         // get all data present on db
@@ -179,7 +211,9 @@ public class WebScraperServiceImpl implements WebScraperService {
                 }
                 String category = null;
                 if (type.getCategory() != null && !type.getCategory().isBlank()) {
-                    category = ((HtmlElement) el.getFirstByXPath(type.getCategory())).getVisibleText().trim();
+                    HtmlElement categoryElement = el.getFirstByXPath(type.getCategory());
+                    if(categoryElement != null)
+                        category = categoryElement.getVisibleText().trim();
                 }
 
 
@@ -205,7 +239,8 @@ public class WebScraperServiceImpl implements WebScraperService {
 
                 scrapedDataList.add(data);
             }catch (Exception e){
-                logger.error("Can't parse: {}", el.asXml(), e);
+                e.printStackTrace();
+                logger.debug("Can't parse: {}", el.asXml(), e);
             }
         }
 
