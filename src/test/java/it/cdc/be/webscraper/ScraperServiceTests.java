@@ -25,7 +25,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -46,10 +45,17 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
     @DynamicPropertySource
     public static void properties(DynamicPropertyRegistry registry){
         wireMockServer.start();
-        JvmProxyConfigurer.configureFor(wireMockServer);
         configureFor("localhost", 9000);
 
-        //registry.add("scraper.urls", ()->"http://localhost:9000/site1;http://localhost:9000/site2;http://localhost:9000/site3;http://localhost:9000/site4;http://localhost:9000/site5;http://localhost:9000/site6;http://localhost:9000/site7;http://localhost:9000/site8");
+        registry.add("scraper.urls", ()->"http://localhost:9000/it_it/tag/innovative-payments;http://localhost:9000/payment-innovation;http://localhost:9000/payment-services;http://localhost:9000/mobile-app;http://localhost:9000/digital-economy;http://localhost:9000/sez/tecnologia/fintech;http://localhost:9000/category/mobile-payments;http://localhost:9000/digital-payments/articles");
+        registry.add("website.map.blog_osservatori.url", ()->"http://localhost:9000/it_it/tag/innovative-payments");
+        registry.add("website.map.pagamentidigitali_innovation.url", ()->"http://localhost:9000/payment-innovation");
+        registry.add("website.map.pagamentidigitali_services.url", ()->"http://localhost:9000/payment-services");
+        registry.add("website.map.pagamentidigitali_mobile.url", ()->"http://localhost:9000/mobile-app");
+        registry.add("website.map.corriere.url", ()->"http://localhost:9000/digital-economy");
+        registry.add("website.map.sole24ore.url", ()->"http://localhost:9000/sez/tecnologia/fintech");
+        registry.add("website.map.paymentscardsandmobile.url", ()->"http://localhost:9000/category/mobile-payments");
+        registry.add("website.map.fintechmagazine.url", ()->"http://localhost:9000/digital-payments/articles");
         postgreSQLContainer.start();
         System.out.println(postgreSQLContainer.getJdbcUrl());
         registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
@@ -61,36 +67,37 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
 
     @BeforeClass()
     void init() throws IOException {
+        JvmProxyConfigurer.configureFor(wireMockServer);
         // init wiremock to provide sample data
-        WireMock.stubFor(WireMock.get("/it_it/tag/innovative-payments").withHost(equalTo("blog.osservatori.net")).willReturn(
+        WireMock.stubFor(WireMock.get("/it_it/tag/innovative-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite1.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/payment-innovation").withHost(equalTo("pagamentidigitali.it")).willReturn(
+        WireMock.stubFor(WireMock.get("/payment-innovation").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite2.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/payment-services").withHost(equalTo("pagamentidigitali.it")).willReturn(
+        WireMock.stubFor(WireMock.get("/payment-services").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite3.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/mobile-app").withHost(equalTo("pagamentidigitali.it")).willReturn(
+        WireMock.stubFor(WireMock.get("/mobile-app").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite4.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/digital-economy").withHost(equalTo("corrierecomunicazioni.it")).willReturn(
+        WireMock.stubFor(WireMock.get("/digital-economy").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite5.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/sez/tecnologia/fintech").withHost(equalTo("ilsole24ore.com")).willReturn(
+        WireMock.stubFor(WireMock.get("/sez/tecnologia/fintech").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/category/mobile-payments").withHost(equalTo("paymentscardsandmobile.com")).willReturn(
+        WireMock.stubFor(WireMock.get("/category/mobile-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite7.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
-        WireMock.stubFor(WireMock.get("/digital-payments/articles").withHost(equalTo("fintechmagazine.com")).willReturn(
+        WireMock.stubFor(WireMock.get("/digital-payments/articles").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite8.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
@@ -324,12 +331,16 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         Assert.assertFalse(scrapedDataList.isEmpty());
         Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("pagamentidigitali_innovation")));
 
+        for (ScrapedData s: scrapedDataList){
+            logger.error(s.toString());
+        }
+
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
                         el.getTitle().equals("Salone dei Pagamenti 2022, protagonisti: intelligenza artificiale, SmartPOS, piattaforme di pagamento") &&
                                 el.getImageUrl().equals("https://d3cs2gzj5td7ug.cloudfront.net/wp-content/uploads/sites/7/2022/12/Salone-cover-678x381.jpg?x62207") &&
                                 el.getCategory().equals("News") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-16") &&
-                                el.getLink().equals("https://www.pagamentidigitali.it/news/salone-dei-pagamenti-2022-protagonisti-intelligenza-artificiale-smartpos-piattaforme-di-pagamento/?__hstc=181257784.cc17aa605debb3743b8d5a5a7b7d71e0.1672408633465.1672408633465.1672408633465.1&__hssc=181257784.2.1672408633465&__hsfp=1169665805") &&
+                                el.getLink().equals("https://www.pagamentidigitali.it/news/salone-dei-pagamenti-2022-protagonisti-intelligenza-artificiale-smartpos-piattaforme-di-pagamento/") &&
                                 el.getBody().equals("Dopo due anni di distanziamento sociale, il desiderio di incontrarsi di persona era tale che ancora si parla dell’edizione 2022 del Salone. Abbiamo chiesto ad alcuni dei protagonisti quali aspetti della loro partecipazione ritengono siano stati più significativi […]".substring(0,200)) &&
                                 el.getWebsite().equals("pagamentidigitali_innovation")
                 )
@@ -338,8 +349,8 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
                         el.getTitle().equals("Le tendenze future nei servizi finanziari – I parte") &&
                                 el.getImageUrl().equals("https://d3cs2gzj5td7ug.cloudfront.net/wp-content/uploads/sites/7/2022/11/word-image-678x381.jpeg?x62207") &&
                                 el.getCategory().equals("Payment Innovation") &&
-                                el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-15") &&
-                                el.getLink().equals("https://www.pagamentidigitali.it/payment-innovation/le-tendenze-future-nei-servizi-finanziari-i-parte/?__hstc=181257784.cc17aa605debb3743b8d5a5a7b7d71e0.1672408633465.1672408633465.1672408633465.1&__hssc=181257784.2.1672408633465&__hsfp=1169665805") &&
+                                el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-11-15") &&
+                                el.getLink().equals("https://www.pagamentidigitali.it/payment-innovation/le-tendenze-future-nei-servizi-finanziari-i-parte/") &&
                                 el.getBody().equals("L’ascesa del denaro digitale e della società senza contanti, la crescente importanza della customer experience, la diffusione dei pagamenti mobili e contactless e di come le nuove tecnologie dell’intelligenza artificiale e della Blockchain sono destinate a trasformare i servizi finanziari. Capire cosa sta succedendo e prepararsi alle tendenze future può aiutare a stare al passo con i tempi […]".substring(0,200)) &&
                                 el.getWebsite().equals("pagamentidigitali_innovation")
                 )
@@ -368,35 +379,33 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         Assert.assertFalse(scrapedDataList.isEmpty());
         Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("corriere")));
 
-        scrapedDataList.stream().filter(el ->
-                el.getTitle().startsWith("Certificazioni su misura di business: processi e dataset si fanno")).findAny().ifPresent(data -> logger.info("Data: " + data.getTitle() + ", " + data.getImageUrl() + ", " + data.getCategory()));
-
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
                         el.getTitle().startsWith("Certificazioni su misura di business: processi e dataset si fanno") &&
-                                el.getImageUrl() == null &&
+                                el.getImageUrl().equals("https://d110erj175o600.cloudfront.net/wp-content/uploads/2022/09/05182508/document-management-workflow-compliance.jpg") &&
                                 el.getCategory().equals("SPONSORED STORY") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-29") &&
-                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/certificazioni-su-misura-di-business-processi-e-dataset-si-fanno-smart/?__hstc=181257784.cc17aa605debb3743b8d5a5a7b7d71e0.1672408633465.1672408633465.1672408633465.1&__hssc=181257784.3.1672408633465&__hsfp=1169665805") &&
+                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/certificazioni-su-misura-di-business-processi-e-dataset-si-fanno-smart/") &&
                                 el.getBody()==null &&
                                 el.getWebsite().equals("corriere")
                 )
         );
+
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
-                        el.getTitle().equals("Chip, banda ultralarga e cybersecurity: ecco le priorità della presidenza svedese Ue") &&
-                                el.getImageUrl().equals("https://d110erj175o600.cloudfront.net/wp-content/uploads/2021/12/10143742/italia-europa.jpg") &&
+                        el.getTitle().matches("Chip, banda ultralarga e cybersecurity: ecco le priorit. della presidenza svedese Ue") &&
+                                el.getImageUrl().equals("https://d110erj175o600.cloudfront.net/wp-content/uploads/2021/12/10143742/italia-europa-lq.jpg") &&
                                 el.getCategory().equals("IL PIANO") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-28") &&
-                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/chip-tlc-e-cybersecurity-ecco-le-priorita-della-presidenza-svedese-ue/?__hstc=181257784.cc17aa605debb3743b8d5a5a7b7d71e0.1672408633465.1672408633465.1672408633465.1&__hssc=181257784.3.1672408633465&__hsfp=1169665805") &&
+                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/chip-tlc-e-cybersecurity-ecco-le-priorita-della-presidenza-svedese-ue/") &&
                                 el.getBody()==null &&
                                 el.getWebsite().equals("corriere")
                 )
         );
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
                         el.getTitle().equals("Innovazione, via ai bandi della Regione Lazio. Sul piatto 90 milioni") &&
-                                el.getImageUrl()==null &&
+                                el.getImageUrl().equals("https://d110erj175o600.cloudfront.net/wp-content/uploads/2021/12/20121136/digital-Inclusion-lq.jpg") &&
                                 el.getCategory().equals("I FONDI") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-28") &&
-                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/innovazione-via-ai-bandi-della-regione-lazio-sul-piatto-90-milioni/?__hstc=181257784.cc17aa605debb3743b8d5a5a7b7d71e0.1672408633465.1672408633465.1672408633465.1&__hssc=181257784.3.1672408633465&__hsfp=1169665805") &&
+                                el.getLink().equals("https://www.corrierecomunicazioni.it/digital-economy/innovazione-via-ai-bandi-della-regione-lazio-sul-piatto-90-milioni/") &&
                                 el.getBody()==null &&
                                 el.getWebsite().equals("corriere")
                 )
@@ -422,22 +431,26 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         Assert.assertFalse(scrapedDataList.isEmpty());
         Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("sole24ore")));
 
+        for (ScrapedData s: scrapedDataList){
+            logger.error(s.toString());
+        }
+
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
                         el.getTitle().equals("Saranno le polizze embedded a trainare il mercato assicurativo del futuro") &&
-                                "https://www.ilsole24ore.com/static/images/placeholders/art/403x210.png".equals(el.getImageUrl()) &&
+                                "http://localhost:9000/static/images/placeholders/art/403x210.png".equals(el.getImageUrl()) &&
                                 el.getCategory().equals("Insurtech") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-22") &&
-                                el.getLink().equals("https://www.ilsole24ore.com/art/saranno-polizze-embedded-trainare-mercato-assicurativo-futuro-AEUSpHRC") &&
+                                el.getLink().equals("http://localhost:9000/art/saranno-polizze-embedded-trainare-mercato-assicurativo-futuro-AEUSpHRC") &&
                                 el.getBody()==null &&
                                 el.getWebsite().equals("sole24ore")
                 )
         );
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
                         el.getTitle().equals("L’identità digitale entra nei servizi finanziari: cresce la richiesta di polizze") &&
-                                el.getImageUrl().equals("https://www.ilsole24ore.com/static/images/placeholders/art/154x154.png") &&
+                                el.getImageUrl().equals("http://localhost:9000/static/images/placeholders/art/154x154.png") &&
                                 el.getCategory().equals("Insurtech") &&
                                 el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-10-20") &&
-                                el.getLink().equals("https://www.ilsole24ore.com/art/l-identita-digitale-entra-servizi-finanziari-cresce-richiesta-polizze-AEIY3CAC") &&
+                                el.getLink().equals("http://localhost:9000/art/l-identita-digitale-entra-servizi-finanziari-cresce-richiesta-polizze-AEIY3CAC") &&
                                 el.getBody()==null &&
                                 el.getWebsite().equals("sole24ore")
                 )
@@ -449,22 +462,43 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         if(scraperRepository.count() == 0)
             scrapingService.getNewData();
 
-        //TODO
-
         List<ScrapedData> scrapedDataList = null;
         try{
-            scrapedDataList = scrapingService.getAllData(null);
+            List<String> filter = new ArrayList<>();
+            filter.add("paymentscardsandmobile");
+
+            scrapedDataList = scrapingService.getAllData(filter);
         }catch (Exception e){
             Assert.fail("Can't retrieve stored scraped data", e);
         }
 
         Assert.assertNotNull(scrapedDataList);
-        Assert.assertEquals(scrapedDataList.size(), 12 + 8);
+        Assert.assertFalse(scrapedDataList.isEmpty());
+        Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("paymentscardsandmobile")));
 
-        //TODO check that all elements that should be in the list are present
+        for (ScrapedData s: scrapedDataList){
+            logger.error(s.toString());
+        }
+
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
-                el.getTitle().equals("Credit Card Merchant Fees: Full Guide &amp; Comparison for 2022") &&
-                        el.getImageUrl().equals("https://assets-global.website-files.com/610922bf9b095f4969ed70fb/628a296d8c4f049201df293b_BlogPST-Thumb-Image%20(21).jpg"))
+                        el.getTitle().equals("Digital wallets: supporting financial inclusion in frontier markets") &&
+                                "https://www.paymentscardsandmobile.com/wp-content/uploads/2022/12/NassPay_Artic-2.jpg".equals(el.getImageUrl()) &&
+                                el.getCategory()==null &&
+                                el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-15") &&
+                                el.getLink().equals("https://www.paymentscardsandmobile.com/digital-wallets-supporting-financial-inclusion-in-frontier-markets/") &&
+                                el.getBody().equals("As one of the world’s most popular ways to pay, digital wallets have had a remarkable impact in the last decade. But as Waleed Khalid, CEO at NassWallet explains, their...") &&
+                                el.getWebsite().equals("paymentscardsandmobile")
+                )
+        );
+        Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
+                        el.getTitle().equals("The European Commission’s proposal for a regulation on instant payments") &&
+                                el.getImageUrl() == null &&
+                                el.getCategory()==null &&
+                                el.getDateArticle().format(DateTimeFormatter.ISO_DATE).equals("2022-12-02") &&
+                                el.getLink().equals("https://www.paymentscardsandmobile.com/the-european-commissions-proposal-for-a-regulation-on-instant-payments/") &&
+                                el.getBody().equals("On 26 October the European Commission (EC) adopted a legislative proposal on instant payments in euro, fulfilling its commitment of the 2020 Retail Payments Str...") &&
+                                el.getWebsite().equals("paymentscardsandmobile")
+                )
         );
     }
 
@@ -473,22 +507,43 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         if(scraperRepository.count() == 0)
             scrapingService.getNewData();
 
-        //TODO
-
         List<ScrapedData> scrapedDataList = null;
         try{
-            scrapedDataList = scrapingService.getAllData(null);
+            List<String> filter = new ArrayList<>();
+            filter.add("fintechmagazine");
+
+            scrapedDataList = scrapingService.getAllData(filter);
         }catch (Exception e){
             Assert.fail("Can't retrieve stored scraped data", e);
         }
 
         Assert.assertNotNull(scrapedDataList);
-        Assert.assertEquals(scrapedDataList.size(), 12 + 8);
+        Assert.assertFalse(scrapedDataList.isEmpty());
+        Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("fintechmagazine")));
 
-        //TODO check that all elements that should be in the list are present
+        for (ScrapedData s: scrapedDataList){
+            logger.error(s.toString());
+        }
+
         Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
-                el.getTitle().equals("Credit Card Merchant Fees: Full Guide &amp; Comparison for 2022") &&
-                        el.getImageUrl().equals("https://assets-global.website-files.com/610922bf9b095f4969ed70fb/628a296d8c4f049201df293b_BlogPST-Thumb-Image%20(21).jpg"))
+                        el.getTitle().equals("Digital payments: Shaping the future for consumer spending") &&
+                                "https://assets.bizclikmedia.net/322/5e257e3adf161e8268f7534a6a3d4a6f:0b1104c8b8a33457c84b98c78faa6b07/gettyimages-1334591614.jpg".equals(el.getImageUrl()) &&
+                                el.getCategory() == null &&
+                                el.getDateArticle() == null &&
+                                el.getLink().equals("http://localhost:9000/digital-payments/digital-payments-shaping-the-future-for-consumer-spending") &&
+                                el.getBody().equals("Andrew Doukanaris, Fintech Business Director at Intellias, discusses how payment options have changed and gives his 2023 predictions…") &&
+                                el.getWebsite().equals("fintechmagazine")
+                )
+        );
+        Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
+                        el.getTitle().equals("SEVEN financial predictions for the year ahead") &&
+                                "https://assets.bizclikmedia.net/322/87ee9d171730f830635415e2a8298b87:1744c4516a845ebc576faa331e289454/gettyimages-1404988611.jpg".equals(el.getImageUrl())&&
+                                el.getCategory() == null &&
+                                el.getDateArticle() == null &&
+                                el.getLink().equals("http://localhost:9000/digital-payments/seven-financial-predictions-for-the-year-ahead") &&
+                                el.getBody().equals("David Jarvis, CEO and co-founder of Griffin, shares his insights for the year ahead, from the impact of high-interest rates, to digital sovereignty in 2023…") &&
+                                el.getWebsite().equals("fintechmagazine")
+                )
         );
     }
 }

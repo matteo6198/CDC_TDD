@@ -71,10 +71,11 @@ public class ScrapedData {
 
     @Override
     public String toString() {
+        String date = dateArticle == null?null:dateArticle.format(DateTimeFormatter.ISO_DATE);
         return "ScrapedData{" +
                 "website='" + website + '\'' +
                 ", title='" + title + '\'' +
-                ", dateArticle=" + dateArticle.format(DateTimeFormatter.ISO_DATE) +
+                ", dateArticle='" + date + "'" +
                 ", link='" + link + '\'' +
                 ", body='" + body + '\'' +
                 ", imageUrl='" + imageUrl + '\'' +

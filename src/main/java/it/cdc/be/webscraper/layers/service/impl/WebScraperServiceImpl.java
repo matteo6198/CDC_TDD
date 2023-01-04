@@ -124,7 +124,6 @@ public class WebScraperServiceImpl implements WebScraperService {
         List<ScrapedData> scrapedDataList = new ArrayList<>();
 
         String baseUrl = Arrays.stream(type.getUrl().split("/")).limit(3).collect(Collectors.joining("/"));
-        logger.debug("BASE URL: {}", baseUrl);
 
         List<HtmlElement> elements = page.getByXPath(type.getItems());
         for(HtmlElement el: elements){
@@ -141,20 +140,28 @@ public class WebScraperServiceImpl implements WebScraperService {
                 }
 
                 String image = null;
-                if (type.getImage() != null && !type.getBody().isBlank()) {
-                    HtmlElement imgElement = el.getFirstByXPath(type.getImage());
-                    if(imgElement != null) {
-                        image = imgElement.getAttribute("src").trim();
-                        if(image.isBlank()){
-                            // only for blog.osservatori
-                            image = imgElement.getAttribute("style")
-                                    .trim()
-                                    .replace("background-image:url(","")
-                                    .replace(")","");
-                        }
+                if (type.getImage() != null && !type.getImage().isBlank()) {
+                    if (!el.getAttribute("data-back").isBlank()) {
+                        image = el.getAttribute("data-back");
+                    } else {
+                        HtmlElement imgElement = el.getFirstByXPath(type.getImage());
+                        if (imgElement != null) {
+                            image = imgElement.getAttribute("src").trim();
+                            if (image.isBlank()) {
+                                // only for blog.osservatori
+                                image = imgElement.getAttribute("style")
+                                        .trim()
+                                        .replace("background-image:url(", "")
+                                        .replace(")", "");
+                            }
+                            if (!image.isBlank() && image.startsWith("data:image")) {
+                                image = imgElement.getAttribute("data-src");
+                            }
 
-                        if(!image.isBlank() && image.matches("^/.*")){
-                            image = baseUrl + image;
+                            if (!image.isBlank() && image.matches("^/.*")) {
+                                image = baseUrl + image;
+                            }
+                            logger.debug("{} -> {}", type.getKey(), image);
                         }
                     }
                 }
@@ -167,7 +174,7 @@ public class WebScraperServiceImpl implements WebScraperService {
                 String body = null;
                 if (type.getBody() != null && !type.getBody().isBlank()) {
                     logger.debug("url: {}, xpath: {}, element: {}", type.getUrl(), type.getBody(), el.getVisibleText());
-                    body = ((HtmlElement) el.getFirstByXPath(type.getBody())).getVisibleText().trim();
+                    body = ((HtmlElement) el.getFirstByXPath(type.getBody())).getVisibleText().trim().replaceFirst("read more$","").replaceFirst("more$","").trim();
                     body = body.substring(0, Math.min(200, body.length()));
                 }
                 String category = null;

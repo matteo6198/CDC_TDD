@@ -79,7 +79,7 @@ website:
       date: ".//time"
       dateFormatter: "dd/MM/yyyy"
       dateLocale: it
-      category: ".//p[contains(@class,'meta')]"
+      category: ".//p[contains(@class,'meta')]//a"
       body: ""
       key: "sole24ore"
     paymentscardsandmobile:
