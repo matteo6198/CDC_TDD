@@ -51,7 +51,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         configureFor("localhost", 9000);
 
         // override variables in properties for tests
-        registry.add("scraper.urls", ()->"http://localhost:9000/it_it/tag/innovative-payments;http://localhost:9000/payment-innovation;http://localhost:9000/payment-services;http://localhost:9000/mobile-app;http://localhost:9000/digital-economy;http://localhost:9000/sez/tecnologia/fintech;http://localhost:9000/category/mobile-payments;http://localhost:9000/digital-payments/articles");
+        registry.add("scraper.urls", ()->"http://localhost:9000/it_it/tag/innovative-payments;http://localhost:9000/payment-innovation;http://localhost:9000/payment-services;http://localhost:9000/mobile-app;http://localhost:9000/digital-economy;http://localhost:9000/sez/tecnologia/fintech;http://localhost:9000/category/mobile-payments;");
         registry.add("website.map.blog_osservatori.url", ()->"http://localhost:9000/it_it/tag/innovative-payments");
         registry.add("website.map.pagamentidigitali_innovation.url", ()->"http://localhost:9000/payment-innovation");
         registry.add("website.map.pagamentidigitali_services.url", ()->"http://localhost:9000/payment-services");
@@ -59,7 +59,6 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         registry.add("website.map.corriere.url", ()->"http://localhost:9000/digital-economy");
         registry.add("website.map.sole24ore.url", ()->"http://localhost:9000/sez/tecnologia/fintech");
         registry.add("website.map.paymentscardsandmobile.url", ()->"http://localhost:9000/category/mobile-payments");
-        registry.add("website.map.fintechmagazine.url", ()->"http://localhost:9000/digital-payments/articles");
 
         registry.add("scraper.page.limit", ()->"10");
 
@@ -108,10 +107,6 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         WireMock.stubFor(WireMock.get("/category/mobile-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite7.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
-        WireMock.stubFor(WireMock.get("/digital-payments/articles").willReturn(
-                WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite8.html")).readAllBytes(), StandardCharsets.UTF_8)))
         );
     }
 
@@ -514,51 +509,6 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         );
     }
 
-    @Test(dependsOnMethods = {"checkServiceDoesNotDuplicateData","checkRetrieveWorks","checkFiltersWorks"})
-    void checkAllDataPresentAreRetrievedFintechmagazine(){
-        if(scraperRepository.count() == 0)
-            scrapingService.getNewData();
-
-        List<ScrapedData> scrapedDataList = null;
-        try{
-            List<String> filter = new ArrayList<>();
-            filter.add("fintechmagazine");
-
-            scrapedDataList = scrapingService.getAllData(filter);
-        }catch (Exception e){
-            Assert.fail("Can't retrieve stored scraped data", e);
-        }
-
-        Assert.assertNotNull(scrapedDataList);
-        Assert.assertFalse(scrapedDataList.isEmpty());
-        Assert.assertTrue(scrapedDataList.stream().allMatch(el->el.getWebsite().equals("fintechmagazine")));
-
-        for (ScrapedData s: scrapedDataList){
-            logger.error(s.toString());
-        }
-
-        Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
-                        el.getTitle().equals("Digital payments: Shaping the future for consumer spending") &&
-                                "https://assets.bizclikmedia.net/322/5e257e3adf161e8268f7534a6a3d4a6f:0b1104c8b8a33457c84b98c78faa6b07/gettyimages-1334591614.jpg".equals(el.getImageUrl()) &&
-                                el.getCategory() == null &&
-                                el.getDateArticle() == null &&
-                                el.getLink().equals("http://localhost:9000/digital-payments/digital-payments-shaping-the-future-for-consumer-spending") &&
-                                el.getBody().equals("Andrew Doukanaris, Fintech Business Director at Intellias, discusses how payment options have changed and gives his 2023 predictions…") &&
-                                el.getWebsite().equals("fintechmagazine")
-                )
-        );
-        Assert.assertTrue(scrapedDataList.stream().anyMatch(el->
-                        el.getTitle().equals("SEVEN financial predictions for the year ahead") &&
-                                "https://assets.bizclikmedia.net/322/87ee9d171730f830635415e2a8298b87:1744c4516a845ebc576faa331e289454/gettyimages-1404988611.jpg".equals(el.getImageUrl())&&
-                                el.getCategory() == null &&
-                                el.getDateArticle() == null &&
-                                el.getLink().equals("http://localhost:9000/digital-payments/seven-financial-predictions-for-the-year-ahead") &&
-                                el.getBody().equals("David Jarvis, CEO and co-founder of Griffin, shares his insights for the year ahead, from the impact of high-interest rates, to digital sovereignty in 2023…") &&
-                                el.getWebsite().equals("fintechmagazine")
-                )
-        );
-    }
-
     @Test(dependsOnMethods = {"checkServiceDoesNotDuplicateData", "checkScrapingWorks"})
     void testGoesToNextPage(){
         if(scraperRepository.count() == 0)
@@ -583,8 +533,6 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
 
         // check read next pages for all websites
         for(String el:websiteSelectorModel.getMap().keySet()){
-            if(el.equals("fintechmagazine"))        // skip fintechmagazine because it has not next pages
-                continue;
             Assert.assertTrue(filteredDataMap.containsKey(el), "Website "+el+" not present");
             Assert.assertFalse(filteredDataMap.get(el).isEmpty());
             for(String url: filteredDataMap.get(el).stream().map(ScrapedDataEntity::getLink).collect(Collectors.toList())){

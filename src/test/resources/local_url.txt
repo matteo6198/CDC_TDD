@@ -1,11 +1,3 @@
-http://localhost:9000/digital-payments/digital-payments-shaping-the-future-for-consumer-spending
-http://localhost:9000/digital-payments/how-fintech-can-help-card-issuers-prevent-friendly-fraud
-http://localhost:9000/digital-payments/how-fintechs-can-help-businesses-manage-late-payments
-http://localhost:9000/digital-payments/fintech-focus-eu-md-of-bluesnap-talks-2023-trends
-http://localhost:9000/digital-payments/seven-financial-predictions-for-the-year-ahead
-http://localhost:9000/articles/improve-diversity-by-focusing-on-staff-retention-wiley-says
-http://localhost:9000/digital-payments/eu-consortium-to-deliver-controversial-digital-id-wallets
-http://localhost:9000/digital-payments/40-of-latam-ecommerce-payments-are-by-alternative-methods
 https://www.corrierecomunicazioni.it/digital-economy/certificazioni-su-misura-di-business-processi-e-dataset-si-fanno-smart/
 https://www.corrierecomunicazioni.it/digital-economy/catasto-e-immobiliare-ecco-come-informatizzare-il-patrimonio/
 https://www.corrierecomunicazioni.it/digital-economy/innovazione-via-ai-bandi-della-regione-lazio-sul-piatto-90-milioni/

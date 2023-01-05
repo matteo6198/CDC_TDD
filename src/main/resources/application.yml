@@ -103,17 +103,4 @@ website:
       body: ".//p[contains(@class,'news_excerpt')]"
       nextPage: "//div[@class = 'pagination']/ul/li[last() - 1]/a"
       key: "paymentscardsandmobile"
-    fintechmagazine:
-      url: "https://fintechmagazine.com/digital-payments/articles"
-      title: ".//h3"
-      image: ".//img"
-      link: ".//a[contains(@class,'Card_CardOverlayLink')]"
-      items: "//div[contains(@class,'Card_CardWrapper')]"
-      date: ""
-      dateFormatter: ""
-      dateLocale: it
-      category: ""
-      body: ".//div[contains(@class,'Card_CardDescription')]//p"
-      nextPage: "//button[contains(@class, 'ButtonBase_ButtonBase')]/span/div[contains(., 'More')]"
-      key: "fintechmagazine"
 
