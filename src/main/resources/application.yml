@@ -1,6 +1,12 @@
 scraper:
-  urls: https://blog.osservatori.net/it_it/tag/innovative-payments;https://www.pagamentidigitali.it/payment-innovation/;https://www.pagamentidigitali.it/payment-services/;https://www.pagamentidigitali.it/mobile-app/;https://www.corrierecomunicazioni.it/digital-economy/;https://www.ilsole24ore.com/sez/tecnologia/fintech;https://www.paymentscardsandmobile.com/category/mobile-payments/;https://fintechmagazine.com/digital-payments/articles
-  page.limit: 100
+  urls: https://blog.osservatori.net/it_it/tag/innovative-payments;https://www.pagamentidigitali.it/payment-innovation/;https://www.pagamentidigitali.it/payment-services/;https://www.pagamentidigitali.it/mobile-app/;https://www.corrierecomunicazioni.it/digital-economy/;https://www.ilsole24ore.com/sez/tecnologia/fintech;https://www.paymentscardsandmobile.com/category/mobile-payments/
+  date.limit:
+    years: 0
+    months: 6
+    days: 0
+  scheduled:
+    getNewData: "0 0 */4 * * *"
+    clean: "0 0 */6 * * *"
 
 spring:
   datasource:

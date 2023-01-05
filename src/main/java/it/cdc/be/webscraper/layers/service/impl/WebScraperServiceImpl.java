@@ -3,18 +3,29 @@ package it.cdc.be.webscraper.layers.service.impl;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import it.cdc.be.webscraper.dto.domain.Pagination;
 import it.cdc.be.webscraper.dto.domain.ScrapedData;
 import it.cdc.be.webscraper.dto.domain.Selector;
+import it.cdc.be.webscraper.dto.request.ScrapingServiceRequest;
+import it.cdc.be.webscraper.dto.response.GetAllDataResponse;
+import it.cdc.be.webscraper.dto.response.GoToNextPageResponse;
+import it.cdc.be.webscraper.dto.response.ParsePageServiceResponse;
+import it.cdc.be.webscraper.exception.ScraperException;
 import it.cdc.be.webscraper.layers.service.WebScraperService;
 import it.cdc.be.webscraper.repository.ScraperRepository;
 import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
 import it.cdc.be.webscraper.utils.ScraperUtils;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.text.DateFormat;
@@ -31,8 +42,14 @@ public class WebScraperServiceImpl implements WebScraperService {
     @Value("#{'${scraper.urls}'.split(';\\s*')}")
     private List<String> urlsToBeScraped;
 
-    @Value("${scraper.page.limit:300}")
-    private Long scraperPageLimit;
+    @Value("${scraper.date.limit.years}")
+    private Long scraperDateLimitYears;
+
+    @Value("${scraper.date.limit.months}")
+    private Long scraperDateLimitMonths;
+
+    @Value("${scraper.date.limit.days}")
+    private Long scraperDateLimitDays;
 
     @Autowired
     private ScraperRepository scraperRepository;
@@ -50,7 +67,9 @@ public class WebScraperServiceImpl implements WebScraperService {
     }
 
     @Override
+    @Scheduled(cron = "${scraper.scheduled.getNewData}")
     public void getNewData() {
+        logger.info("Scraping new data");
         List<ScrapedDataEntity> scrapedDataEntities = new ArrayList<>();
 
         for(String url:urlsToBeScraped){
@@ -71,15 +90,19 @@ public class WebScraperServiceImpl implements WebScraperService {
                 continue;
             }
 
-            HtmlElement nextPageLink;
             Set<String> alreadyVisited = new HashSet<>();
             alreadyVisited.add(page.getUrl().toString());
 
             while(true) {
-                if(cnt > scraperPageLimit)
+                ParsePageServiceResponse parsePageServiceResponse;
+                try {
+                    parsePageServiceResponse = parsePage(page, selector);
+                }catch (ScraperException e){
+                    logger.error("Error while scraping website {}", selector.getKey());
                     break;
+                }
 
-                List<ScrapedData> scrapedDataList = parsePage(page, selector);
+                List<ScrapedData> scrapedDataList = parsePageServiceResponse.getScrapedDataList();
 
                 scrapedDataEntities.addAll(scrapedDataList.stream().map(d -> {
                     ScrapedDataEntity entity = new ScrapedDataEntity();
@@ -90,27 +113,17 @@ public class WebScraperServiceImpl implements WebScraperService {
                     return entity;
                 }).collect(Collectors.toList()));
 
-                nextPageLink = page.getFirstByXPath(selector.getNextPage());
-                if(nextPageLink == null) {
-                    logger.info("Next page link not found for website {}", selector.getKey());
+                if(parsePageServiceResponse.isStopNextPage())
                     break;
-                }
 
-                String nextUrl = nextPageLink.getAttribute("href");
-                if(alreadyVisited.contains(nextUrl)){
-                    break;
-                }
+                GoToNextPageResponse toNextPageResponse = ScraperUtils.goToNextPage(page, selector, alreadyVisited);
+                alreadyVisited.add(toNextPageResponse.getNextUrl());
+                page = toNextPageResponse.getNewPage();
 
-                try {
-                    page = nextPageLink.click();
-                    logger.debug("{}", nextUrl);
-                }catch (Exception e){
-                    logger.info("finished website {} on url {}", selector.getKey(), page.getUrl(), e);
-                    break;
-                }
-
-                alreadyVisited.add(nextUrl);
                 cnt++;
+                if(page == null){
+                    break;
+                }
             }
             logger.info("Scraped {} pages for website {}", cnt, selector.getKey());
         }
@@ -132,29 +145,22 @@ public class WebScraperServiceImpl implements WebScraperService {
         scraperRepository.saveAll(dataToBeStored);
     }
 
-    @Override
-    public List<ScrapedData> getAllData(List<String> filters) {
-        List<ScrapedDataEntity> allData;
-        if(filters == null || filters.isEmpty())
-            allData = scraperRepository.findScrapedDataOrderedByDateArticle();
-        else
-            allData = scraperRepository.findScrapedDataByWebsite(filters);
-        return allData.stream().map(d->{
-            ScrapedData data = new ScrapedData();
-            BeanUtils.copyProperties(d, data);
-
-            return data;
-        }).collect(Collectors.toList());
-    }
-
-    private List<ScrapedData> parsePage(HtmlPage page, Selector type) {
+    private ParsePageServiceResponse parsePage(HtmlPage page, Selector type) throws ScraperException {
         if(type == null){
             logger.error("Null type");
-            return new ArrayList<>();
+            throw new ScraperException();
         }
 
-        List<ScrapedData> scrapedDataList = new ArrayList<>();
+        ParsePageServiceResponse response = new ParsePageServiceResponse();
+        response.setStopNextPage(false);
+        final LocalDate oldestDate = LocalDate.now()
+                .minusYears(scraperDateLimitYears)
+                .minusMonths(scraperDateLimitMonths)
+                .minusDays(scraperDateLimitDays)
+                .withDayOfMonth(1)
+                .minusDays(1);
 
+        List<ScrapedData> scrapedDataList = new ArrayList<>();
         String baseUrl = Arrays.stream(type.getUrl().split("/")).limit(3).collect(Collectors.joining("/"));
 
         List<HtmlElement> elements = page.getByXPath(type.getItems());
@@ -163,6 +169,8 @@ public class WebScraperServiceImpl implements WebScraperService {
                 continue;
 
             try {
+                ScrapedData data = new ScrapedData();
+
                 logger.debug(el.getVisibleText().replace('\n', ';'));
                 String title = ((HtmlElement) el.getFirstByXPath(type.getTitle())).getVisibleText().trim();
                 String link = ((HtmlElement) el.getFirstByXPath(type.getLink())).getAttribute(("href")).trim();
@@ -198,11 +206,6 @@ public class WebScraperServiceImpl implements WebScraperService {
                     }
                 }
 
-
-                String date = null;
-                if (type.getDate() != null && !type.getDate().isBlank())
-                    date = ((HtmlElement) el.getFirstByXPath(type.getDate())).getVisibleText().trim();
-
                 String body = null;
                 if (type.getBody() != null && !type.getBody().isBlank()) {
                     logger.debug("url: {}, xpath: {}, element: {}", type.getUrl(), type.getBody(), el.getVisibleText());
@@ -216,26 +219,32 @@ public class WebScraperServiceImpl implements WebScraperService {
                         category = categoryElement.getVisibleText().trim();
                 }
 
-
-                ScrapedData data = new ScrapedData();
                 data.setImageUrl(image);
                 data.setTitle(title);
                 data.setLink(link);
                 data.setBody(body);
                 data.setCategory(category);
-                logger.debug("link: {}, image: {}", link, image);
-                LocalDate dateArticle = null;
-                if (date != null) {
+
+                String date = ((HtmlElement) el.getFirstByXPath(type.getDate())).getVisibleText().trim();
+                if (!date.isBlank()) {
                     try {
                         DateFormat format = new SimpleDateFormat(type.getDateFormatter(), Locale.forLanguageTag(type.getDateLocale()));
-                        dateArticle = format.parse(date).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                    } catch (Exception e) {
-                        logger.error("date: {}, formatter: {}", date, type.getDateFormatter());
-                        dateArticle = LocalDate.now();
-                    }
-                }
+                        LocalDate dateArticle = format.parse(date).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                        data.setDateArticle(dateArticle);
 
-                data.setDateArticle(dateArticle);
+                        if(!dateArticle.isAfter(oldestDate)){
+                            logger.info("skipping site {} -> {}", type.getKey(), data);
+                            response.setStopNextPage(true);
+                            break;
+                        }
+                    } catch (Exception e) {
+                        logger.error("Can't parse date: {}, formatter: {}", date, type.getDateFormatter());
+                        continue;
+                    }
+                }else {
+                    logger.error("Date not found");
+                    continue;
+                }
 
                 scrapedDataList.add(data);
             }catch (Exception e){
@@ -244,6 +253,67 @@ public class WebScraperServiceImpl implements WebScraperService {
             }
         }
 
-        return scrapedDataList;
+        response.setScrapedDataList(scrapedDataList);
+        return response;
+    }
+
+    @Override
+    public GetAllDataResponse getAllData(@Nonnull ScrapingServiceRequest request) throws ScraperException {
+        Page<ScrapedDataEntity> allData;
+        List<String> filters = request.getWebsiteFilter();
+        if(filters != null && !filters.stream().allMatch(el->scraperUtils.isWebsiteFilterValid(el))){
+            logger.error("Invalid filters");
+            throw new ScraperException();
+        }
+
+        Pageable pagination;
+        if(request.getPagination() == null){
+            pagination = PageRequest.of(0, Integer.MAX_VALUE);
+        }else{
+            pagination = PageRequest.of(request.getPagination().getPageNumber(), request.getPagination().getPageLength());
+        }
+
+        if(filters == null || filters.isEmpty()) {
+            allData = scraperRepository.findScrapedDataOrderedByDateArticle(pagination);
+        }else {
+            allData = scraperRepository.findScrapedDataByWebsite(filters, pagination);
+        }
+
+        List<ScrapedData> retrievedData = allData.stream()
+                .map(d->{
+                    ScrapedData data = new ScrapedData();
+                    BeanUtils.copyProperties(d, data);
+                    return data;
+                }).collect(Collectors.toList());
+
+        GetAllDataResponse response = new GetAllDataResponse();
+        response.setScrapedDataList(retrievedData);
+
+        Pagination paginationOut = new Pagination();
+        if(request.getPagination() != null){
+            BeanUtils.copyProperties(request.getPagination(), paginationOut);
+        }else{
+            paginationOut.setPageNumber(0);
+            paginationOut.setPageLength(Integer.MAX_VALUE);
+        }
+        paginationOut.setTotalPages(allData.getTotalPages());
+
+        response.setPagination(paginationOut);
+        return response;
+    }
+
+    @Override
+    @Scheduled(cron = "${scraper.scheduled.clean}")
+    public void clean() {
+        logger.info("Database clean");
+
+        LocalDate oldestDate = LocalDate.now()
+                        .minusYears(scraperDateLimitYears)
+                        .minusMonths(scraperDateLimitMonths)
+                        .minusDays(scraperDateLimitDays)
+                        .withDayOfMonth(1)
+                        .minusDays(1);
+
+        scraperRepository.deleteScrapedDataByDateArticle(oldestDate);
     }
 }

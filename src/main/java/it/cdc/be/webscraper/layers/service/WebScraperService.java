@@ -1,11 +1,13 @@
 package it.cdc.be.webscraper.layers.service;
 
-import it.cdc.be.webscraper.dto.domain.ScrapedData;
-
-import java.util.List;
+import it.cdc.be.webscraper.dto.request.ScrapingServiceRequest;
+import it.cdc.be.webscraper.dto.response.GetAllDataResponse;
+import it.cdc.be.webscraper.exception.ScraperException;
 
 public interface WebScraperService {
     void getNewData();
 
-    List<ScrapedData> getAllData(List<String> filters);
+    GetAllDataResponse getAllData(ScrapingServiceRequest request) throws ScraperException;
+
+    void clean();
 }
