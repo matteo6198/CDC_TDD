@@ -6,7 +6,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import it.cdc.be.webscraper.dto.domain.Pagination;
 import it.cdc.be.webscraper.dto.domain.ScrapedData;
 import it.cdc.be.webscraper.dto.domain.Selector;
-import it.cdc.be.webscraper.dto.request.ScrapingServiceRequest;
+import it.cdc.be.webscraper.dto.request.GetAllDataRequest;
 import it.cdc.be.webscraper.dto.response.GetAllDataResponse;
 import it.cdc.be.webscraper.dto.response.GoToNextPageResponse;
 import it.cdc.be.webscraper.dto.response.ParsePageServiceResponse;
@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -68,6 +69,7 @@ public class WebScraperServiceImpl implements WebScraperService {
 
     @Override
     @Scheduled(cron = "${scraper.scheduled.getNewData}")
+    @org.springframework.context.event.EventListener(ApplicationReadyEvent.class)
     public void getNewData() {
         logger.info("Scraping new data");
         List<ScrapedDataEntity> scrapedDataEntities = new ArrayList<>();
@@ -258,12 +260,29 @@ public class WebScraperServiceImpl implements WebScraperService {
     }
 
     @Override
-    public GetAllDataResponse getAllData(@Nonnull ScrapingServiceRequest request) throws ScraperException {
+    public GetAllDataResponse getAllData(@Nonnull GetAllDataRequest request) throws ScraperException {
         Page<ScrapedDataEntity> allData;
         List<String> filters = request.getWebsiteFilter();
         if(filters != null && !filters.stream().allMatch(el->scraperUtils.isWebsiteFilterValid(el))){
             logger.error("Invalid filters");
             throw new ScraperException();
+        }
+        // check date
+        final String requestMonth = request.getMonth();
+        Integer year = null;
+        Integer month = null;
+        if(requestMonth != null){
+            if(!requestMonth.matches("^\\d{4}-[01]\\d$")){
+                logger.error("Wrong month format");
+                throw new ScraperException();
+            }
+            String[] fields = requestMonth.split("-");
+            year = Integer.parseInt(fields[0]);
+            month = Integer.parseInt(fields[1]);
+            if(month > 12 || month <= 0){
+                logger.error("Invalid month {}", month);
+                throw new ScraperException();
+            }
         }
 
         Pageable pagination;
@@ -273,11 +292,11 @@ public class WebScraperServiceImpl implements WebScraperService {
             pagination = PageRequest.of(request.getPagination().getPageNumber(), request.getPagination().getPageLength());
         }
 
-        if(filters == null || filters.isEmpty()) {
-            allData = scraperRepository.findScrapedDataOrderedByDateArticle(pagination);
-        }else {
-            allData = scraperRepository.findScrapedDataByWebsite(filters, pagination);
+        if(filters != null && filters.isEmpty()) {
+            filters = null;
         }
+        allData = scraperRepository.findScrapedDataByWebsite(filters, year, month, pagination);
+
 
         List<ScrapedData> retrievedData = allData.stream()
                 .map(d->{

@@ -6,7 +6,7 @@ import com.github.tomakehurst.wiremock.http.JvmProxyConfigurer;
 import it.cdc.be.webscraper.configuration.model.WebsiteSelectorModel;
 import it.cdc.be.webscraper.dto.domain.Pagination;
 import it.cdc.be.webscraper.dto.domain.ScrapedData;
-import it.cdc.be.webscraper.dto.request.ScrapingServiceRequest;
+import it.cdc.be.webscraper.dto.request.GetAllDataRequest;
 import it.cdc.be.webscraper.dto.response.GetAllDataResponse;
 import it.cdc.be.webscraper.exception.ScraperException;
 import it.cdc.be.webscraper.layers.service.WebScraperService;
@@ -154,7 +154,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         Assert.assertEquals(scraperRepository.count(), 0);
 
         List<ScrapedData> scrapedDataList = null;
-        ScrapingServiceRequest request = new ScrapingServiceRequest();
+        GetAllDataRequest request = new GetAllDataRequest();
         // first get
         try{
             scrapingService.getNewData();
@@ -200,7 +200,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
 
     @Test(dependsOnMethods = {"checkScrapingWorks"})
     void checkRetrieveWorks(){
-        ScrapingServiceRequest request = new ScrapingServiceRequest();
+        GetAllDataRequest request = new GetAllDataRequest();
         scraperRepository.deleteAll();
         Assert.assertEquals(scraperRepository.count(), 0);
 
@@ -292,7 +292,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             }
 
             //check filters on source works
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             List<ScrapedData> result;
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -358,7 +358,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             List<String> filter = new ArrayList<>();
             filter.add("blog_osservatori");
 
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             request.setWebsiteFilter(filter);
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -404,7 +404,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             List<String> filter = new ArrayList<>();
             filter.add("pagamentidigitali_innovation");
 
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             request.setWebsiteFilter(filter);
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -454,7 +454,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             List<String> filter = new ArrayList<>();
             filter.add("corriere");
 
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             request.setWebsiteFilter(filter);
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -514,7 +514,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             List<String> filter = new ArrayList<>();
             filter.add("sole24ore");
 
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             request.setWebsiteFilter(filter);
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -564,7 +564,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
             List<String> filter = new ArrayList<>();
             filter.add("paymentscardsandmobile");
 
-            ScrapingServiceRequest request = new ScrapingServiceRequest();
+            GetAllDataRequest request = new GetAllDataRequest();
             request.setWebsiteFilter(filter);
             GetAllDataResponse response = scrapingService.getAllData(request);
             Assert.assertNotNull(response);
@@ -717,11 +717,97 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
 
     @Test(dependsOnMethods = {"checkRetrieveWorks", "checkScrapingWorks"})
     void testDateFilter(){
+        if(scraperRepository.count() == 0)
+            scrapingService.getNewData();
+        Assert.assertTrue(scraperRepository.count() > 0);
 
+        GetAllDataRequest request = new GetAllDataRequest();
+
+        // wrong month
+        request.setMonth("2023");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
+        request.setMonth("2023-13");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
+        request.setMonth("2023/12");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
+        request.setMonth("2023-00");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
+        request.setMonth("2023-3");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
+        // valid
+        List<ScrapedDataEntity> allDataList = scraperRepository.findAll();
+        final ScrapedDataEntity data = allDataList.get(0);
+        Assert.assertNotNull(data.getDateArticle());
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        final String month = data.getDateArticle().format(formatter);
+
+        try {
+            request.setMonth(month);
+            GetAllDataResponse response = scrapingService.getAllData(request);
+            Assert.assertNotNull(response);
+
+            List<ScrapedData> scrapedDataList = response.getScrapedDataList();
+            Assert.assertNotNull(scrapedDataList);
+            Assert.assertFalse(scrapedDataList.isEmpty());
+            Assert.assertTrue(scrapedDataList.stream().allMatch(el->month.equals(el.getDateArticle().format(formatter))));
+            Assert.assertTrue(scrapedDataList.stream().anyMatch(el->el.getLink().equals(data.getLink())));
+        }catch (Exception e){
+            Assert.fail("Exception while retrieving filtered data", e);
+        }
     }
 
     @Test(dependsOnMethods = {"testDateFilter","testWebsiteFilterWorks"})
     void testMixedFilterWorks(){
+        if(scraperRepository.count() == 0)
+            scrapingService.getNewData();
+        Assert.assertTrue(scraperRepository.count() > 0);
 
+        GetAllDataRequest request = new GetAllDataRequest();
+        List<ScrapedDataEntity> allDataList = scraperRepository.findAll();
+        final ScrapedDataEntity data = allDataList.get(0);
+        Assert.assertNotNull(data.getDateArticle());
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        final String month = data.getDateArticle().format(formatter);
+        final String website = data.getWebsite();
+
+        List<String> filter = new ArrayList<>();
+        filter.add(website);
+
+        request.setWebsiteFilter(filter);
+        request.setMonth(month);
+
+        try{
+            GetAllDataResponse response = scrapingService.getAllData(request);
+            Assert.assertNotNull(response);
+
+            List<ScrapedData> scrapedDataList = response.getScrapedDataList();
+            Assert.assertNotNull(scrapedDataList);
+            Assert.assertFalse(scrapedDataList.isEmpty());
+            Assert.assertTrue(scrapedDataList.stream()
+                    .allMatch(el->month.equals(el.getDateArticle().format(formatter)) && website.equals(el.getWebsite())));
+            Assert.assertTrue(scrapedDataList.stream()
+                    .anyMatch(el->el.getLink().equals(data.getLink())));
+        }catch (Exception e){
+            Assert.fail("Exception while retrieving data", e);
+        }
+
+        // check with no data present
+        final String monthFuture = LocalDate.now().plusYears(10).format(formatter);
+        try{
+            request.setMonth(monthFuture);
+            GetAllDataResponse response = scrapingService.getAllData(request);
+            Assert.assertNotNull(response);
+
+            List<ScrapedData> scrapedDataList = response.getScrapedDataList();
+            Assert.assertNotNull(scrapedDataList);
+            Assert.assertTrue(scrapedDataList.isEmpty());
+        }catch (Exception e){
+            Assert.fail("Exception while retrieving data", e);
+        }
     }
 }

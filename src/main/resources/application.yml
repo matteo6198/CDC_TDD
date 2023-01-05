@@ -6,7 +6,7 @@ scraper:
     days: 0
   scheduled:
     getNewData: "0 0 */4 * * *"
-    clean: "0 0 */6 * * *"
+    clean: "0 0 */24 * * *"
 
 spring:
   datasource:
