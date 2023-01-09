@@ -1,7 +1,6 @@
 package it.cdc.be.webscraper.layers.service.impl;
 
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import it.cdc.be.webscraper.configuration.model.WebsiteSelectorModel;
 import it.cdc.be.webscraper.dto.domain.Pagination;
@@ -31,11 +30,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,15 +43,6 @@ public class WebScraperServiceImpl implements WebScraperService {
 
     @Value("#{'${scraper.urls}'.split(';\\s*')}")
     private List<String> urlsToBeScraped;
-
-    @Value("${scraper.date.limit.years}")
-    private Long scraperDateLimitYears;
-
-    @Value("${scraper.date.limit.months}")
-    private Long scraperDateLimitMonths;
-
-    @Value("${scraper.date.limit.days}")
-    private Long scraperDateLimitDays;
 
     @Autowired
     private ScraperRepository scraperRepository;
@@ -104,7 +94,7 @@ public class WebScraperServiceImpl implements WebScraperService {
             while(true) {
                 ParsePageServiceResponse parsePageServiceResponse;
                 try {
-                    parsePageServiceResponse = parsePage(page, selector);
+                    parsePageServiceResponse = scraperUtils.parsePage(page, selector);
                 }catch (ScraperException e){
                     logger.error("Error while scraping website {}", selector.getKey());
                     break;
@@ -153,118 +143,6 @@ public class WebScraperServiceImpl implements WebScraperService {
         scraperRepository.saveAll(dataToBeStored);
     }
 
-    private ParsePageServiceResponse parsePage(HtmlPage page, Selector type) throws ScraperException {
-        if(type == null){
-            logger.error("Null type");
-            throw new ScraperException();
-        }
-
-        ParsePageServiceResponse response = new ParsePageServiceResponse();
-        response.setStopNextPage(false);
-        final LocalDate oldestDate = LocalDate.now()
-                .minusYears(scraperDateLimitYears)
-                .minusMonths(scraperDateLimitMonths)
-                .minusDays(scraperDateLimitDays)
-                .withDayOfMonth(1)
-                .minusDays(1);
-
-        List<ScrapedData> scrapedDataList = new ArrayList<>();
-        String baseUrl = Arrays.stream(type.getUrl().split("/")).limit(3).collect(Collectors.joining("/"));
-
-        List<HtmlElement> elements = page.getByXPath(type.getItems());
-        for(HtmlElement el: elements){
-            if(el.getVisibleText().isBlank())
-                continue;
-
-            try {
-                ScrapedData data = new ScrapedData();
-
-                logger.debug(el.getVisibleText().replace('\n', ';'));
-                String title = ((HtmlElement) el.getFirstByXPath(type.getTitle())).getVisibleText().trim();
-                String link = ((HtmlElement) el.getFirstByXPath(type.getLink())).getAttribute(("href")).trim();
-                if(!link.isBlank() && link.matches("^/.*")){
-                    logger.debug("link: {}, base: {}", link, type.getUrl());
-                    link = baseUrl + link;
-                }
-
-                String image = null;
-                if (type.getImage() != null && !type.getImage().isBlank()) {
-                    if (!el.getAttribute("data-back").isBlank()) {
-                        image = el.getAttribute("data-back");
-                    } else {
-                        HtmlElement imgElement = el.getFirstByXPath(type.getImage());
-                        if (imgElement != null) {
-                            image = imgElement.getAttribute("src").trim();
-                            if (image.isBlank()) {
-                                // only for blog.osservatori
-                                image = imgElement.getAttribute("style")
-                                        .trim()
-                                        .replace("background-image:url(", "")
-                                        .replace(")", "");
-                            }
-                            if (!image.isBlank() && image.startsWith("data:image")) {
-                                image = imgElement.getAttribute("data-src");
-                            }
-
-                            if (!image.isBlank() && image.matches("^/.*")) {
-                                image = baseUrl + image;
-                            }
-                            logger.debug("{} -> {}", type.getKey(), image);
-                        }
-                    }
-                }
-
-                String body = null;
-                if (type.getBody() != null && !type.getBody().isBlank()) {
-                    logger.debug("url: {}, xpath: {}, element: {}", type.getUrl(), type.getBody(), el.getVisibleText());
-                    body = ((HtmlElement) el.getFirstByXPath(type.getBody())).getVisibleText().trim().replaceFirst("read more$","").replaceFirst("more$","").trim();
-                    body = body.substring(0, Math.min(200, body.length()));
-                }
-                String category = null;
-                if (type.getCategory() != null && !type.getCategory().isBlank()) {
-                    HtmlElement categoryElement = el.getFirstByXPath(type.getCategory());
-                    if(categoryElement != null)
-                        category = categoryElement.getVisibleText().trim();
-                }
-
-                data.setImageUrl(image);
-                data.setTitle(title);
-                data.setLink(link);
-                data.setBody(body);
-                data.setCategory(category);
-
-                String date = ((HtmlElement) el.getFirstByXPath(type.getDate())).getVisibleText().trim();
-                if (!date.isBlank()) {
-                    try {
-                        DateFormat format = new SimpleDateFormat(type.getDateFormatter(), Locale.forLanguageTag(type.getDateLocale()));
-                        LocalDate dateArticle = format.parse(date).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                        data.setDateArticle(dateArticle);
-
-                        if(!dateArticle.isAfter(oldestDate)){
-                            logger.info("skipping site {} -> {}", type.getKey(), data);
-                            response.setStopNextPage(true);
-                            break;
-                        }
-                    } catch (Exception e) {
-                        logger.error("Can't parse date: {}, formatter: {}", date, type.getDateFormatter());
-                        continue;
-                    }
-                }else {
-                    logger.error("Date not found");
-                    continue;
-                }
-
-                scrapedDataList.add(data);
-            }catch (Exception e){
-                e.printStackTrace();
-                logger.debug("Can't parse: {}", el.asXml(), e);
-            }
-        }
-
-        response.setScrapedDataList(scrapedDataList);
-        return response;
-    }
-
     @Override
     public GetAllDataResponse getAllData(@Nonnull GetAllDataRequest request) throws ScraperException {
         Page<ScrapedDataEntity> allData;
@@ -275,8 +153,8 @@ public class WebScraperServiceImpl implements WebScraperService {
         }
         // check date
         final String requestMonth = request.getMonth();
-        Integer year = -1;
-        Integer month = null;
+        int year = -1;
+        int month = -1;
         if(requestMonth != null){
             if(!requestMonth.matches("^\\d{4}-[01]\\d$")){
                 logger.error("Wrong month format");
@@ -336,12 +214,7 @@ public class WebScraperServiceImpl implements WebScraperService {
     public void clean() {
         logger.info("Database clean");
 
-        LocalDate oldestDate = LocalDate.now()
-                        .minusYears(scraperDateLimitYears)
-                        .minusMonths(scraperDateLimitMonths)
-                        .minusDays(scraperDateLimitDays)
-                        .withDayOfMonth(1)
-                        .minusDays(1);
+        LocalDate oldestDate = scraperUtils.getOldestDatePossible();
 
         scraperRepository.deleteScrapedDataByDateArticle(oldestDate);
     }
