@@ -128,16 +128,11 @@ public class WebScraperServiceImpl implements WebScraperService {
 
         // get all data present on db
         List<ScrapedDataEntity> alreadyStored = scraperRepository.findAll();
-        List<String> urlsToBeIgnored = alreadyStored.stream()
-                .map(d-> d.getLink() + d.getTitle() + d.getWebsite())
-                .collect(Collectors.toList());
-
         // filter out already present data
+        scrapedDataEntities.removeAll(alreadyStored);
+        // remove duplicates
         List<ScrapedDataEntity> dataToBeStored = scrapedDataEntities.stream()
-                .filter(d -> {
-                    String key = d.getLink() + d.getTitle() + d.getWebsite();
-                    return !urlsToBeIgnored.contains(key);
-                }).distinct()
+                .distinct()
                 .collect(Collectors.toList());
 
         scraperRepository.saveAll(dataToBeStored);
@@ -169,6 +164,10 @@ public class WebScraperServiceImpl implements WebScraperService {
             }
             if(year <= 0){
                 logger.error("Invalid month {}", month);
+                throw new ScraperException();
+            }
+            if(scraperUtils.getOldestDatePossible().format(ScraperUtils.DATE_YEAR_MONTH_FORMATTER).compareTo(requestMonth) > 0){
+                logger.error("Date too old {}", requestMonth);
                 throw new ScraperException();
             }
         }

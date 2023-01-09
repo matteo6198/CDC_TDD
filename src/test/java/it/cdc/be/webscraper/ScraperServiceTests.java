@@ -739,6 +739,10 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         request.setMonth("2023-3");
         Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
 
+        // before last valid date
+        request.setMonth("1000-01");
+        Assert.assertThrows(ScraperException.class, ()->scrapingService.getAllData(request));
+
         // valid
         List<ScrapedDataEntity> allDataList = scraperRepository.findAll();
         final ScrapedDataEntity data = allDataList.get(0);

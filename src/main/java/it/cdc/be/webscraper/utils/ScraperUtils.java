@@ -19,6 +19,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,8 @@ public class ScraperUtils {
 
     @Resource(name = "WebsiteSelectorModel")
     private WebsiteSelectorModel websiteSelectorModel;
+
+    public static final DateTimeFormatter DATE_YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     public Selector getWebsiteSelectorsFromUrl(String url){
         for(String key: websiteSelectorModel.getMap().keySet()){
