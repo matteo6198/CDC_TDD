@@ -3,6 +3,7 @@ package it.cdc.be.webscraper.layers.service.impl;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import it.cdc.be.webscraper.configuration.model.WebsiteSelectorModel;
 import it.cdc.be.webscraper.dto.domain.Pagination;
 import it.cdc.be.webscraper.dto.domain.ScrapedData;
 import it.cdc.be.webscraper.dto.domain.Selector;
@@ -17,6 +18,7 @@ import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
 import it.cdc.be.webscraper.utils.ScraperUtils;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -58,6 +60,9 @@ public class WebScraperServiceImpl implements WebScraperService {
     @Autowired
     private ScraperUtils scraperUtils;
 
+    @Resource(name = "WebsiteSelectorModel")
+    private WebsiteSelectorModel websiteSelectorModel;
+
     private WebClient webClient;
 
     @PostConstruct
@@ -65,6 +70,7 @@ public class WebScraperServiceImpl implements WebScraperService {
         webClient = new WebClient();
         webClient.getOptions().setCssEnabled(false);
         webClient.getOptions().setJavaScriptEnabled(false);
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
     }
 
     @Override
@@ -269,7 +275,7 @@ public class WebScraperServiceImpl implements WebScraperService {
         }
         // check date
         final String requestMonth = request.getMonth();
-        Integer year = null;
+        Integer year = -1;
         Integer month = null;
         if(requestMonth != null){
             if(!requestMonth.matches("^\\d{4}-[01]\\d$")){
@@ -283,6 +289,10 @@ public class WebScraperServiceImpl implements WebScraperService {
                 logger.error("Invalid month {}", month);
                 throw new ScraperException();
             }
+            if(year <= 0){
+                logger.error("Invalid month {}", month);
+                throw new ScraperException();
+            }
         }
 
         Pageable pagination;
@@ -292,8 +302,8 @@ public class WebScraperServiceImpl implements WebScraperService {
             pagination = PageRequest.of(request.getPagination().getPageNumber(), request.getPagination().getPageLength());
         }
 
-        if(filters != null && filters.isEmpty()) {
-            filters = null;
+        if(filters == null || filters.isEmpty()) {
+            filters = new ArrayList<>(websiteSelectorModel.getMap().keySet());
         }
         allData = scraperRepository.findScrapedDataByWebsite(filters, year, month, pagination);
 

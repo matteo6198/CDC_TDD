@@ -16,7 +16,7 @@ import java.util.List;
 @Repository("ScraperRepository")
 public interface ScraperRepository extends JpaRepository<ScrapedDataEntity, Long> {
 
-    @Query(value = "SELECT * FROM SCRAPED_DATA WHERE (:websites IS NULL OR WEBSITE IN (:websites)) AND (:year IS NULL OR (:year = EXTRACT(YEAR FROM DATE_ARTICLE) AND :month = EXTRACT(MONTH FROM DATE_ARTICLE))) ORDER BY DATE_ARTICLE DESC", nativeQuery = true)
+    @Query(value = "SELECT * FROM SCRAPED_DATA WHERE WEBSITE IN (:websites) AND (:year = -1 OR (:year = EXTRACT(YEAR FROM DATE_ARTICLE) AND :month = EXTRACT(MONTH FROM DATE_ARTICLE))) ORDER BY DATE_ARTICLE DESC", nativeQuery = true)
     Page<ScrapedDataEntity> findScrapedDataByWebsite(@Param("websites") List<String> websites, @Param("year") Integer year, @Param("month") Integer month, Pageable pageable);
 
     @Modifying
