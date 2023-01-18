@@ -1,8 +1,8 @@
 package it.cdc.be.webscraper.repository.entity;
 
 
-import jakarta.persistence.*;
 
+import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.Objects;
 

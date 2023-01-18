@@ -12,7 +12,6 @@ import it.cdc.be.webscraper.exception.ScraperException;
 import it.cdc.be.webscraper.layers.service.WebScraperService;
 import it.cdc.be.webscraper.repository.ScraperRepository;
 import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
-import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -23,8 +22,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import javax.annotation.Resource;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -88,36 +89,36 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
         // init wiremock to provide sample data
         WireMock.stubFor(WireMock.get("/it_it/tag/innovative-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite1.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite1.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/payment-innovation").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite2.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite2.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/payment-services").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite3.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite3.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/mobile-app").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite4.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite4.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/digital-economy").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite5.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite5.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/sez/tecnologia/fintech").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/archivi/tecnologia/fintech/1").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6_1.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite6_1.html")))).lines().collect(Collectors.joining())
+        )));
         WireMock.stubFor(WireMock.get("/category/mobile-payments").willReturn(
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
-                        .withBody(new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite7.html")).readAllBytes(), StandardCharsets.UTF_8)))
-        );
+                        .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite7.html")))).lines().collect(Collectors.joining())
+        )));
     }
 
     @Test()
@@ -143,7 +144,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
                 .allMatch(d ->
                         d.getLink().matches("^http[s]?://.*") &&
                                 (d.getImageUrl() == null || d.getImageUrl().matches("^http[s]?://.*")) &&
-                                d.getTitle() != null && !d.getTitle().isBlank() && d.getWebsite() != null &&
+                                d.getTitle() != null && !d.getTitle().isEmpty() && d.getWebsite() != null &&
                                 d.getDateArticle() != null
                         ));
     }
@@ -611,8 +612,7 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
 
         Set<String> localUrls;
         try {
-            String file = new String(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("local_url.txt")).readAllBytes());
-            localUrls = file.lines().collect(Collectors.toSet());
+            localUrls = new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("local_url.txt")))).lines().collect(Collectors.toSet());
         }catch (Exception e){
             Assert.fail("Can't read local urls file", e);
             return;

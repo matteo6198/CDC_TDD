@@ -8,13 +8,13 @@ import it.cdc.be.webscraper.dto.domain.Selector;
 import it.cdc.be.webscraper.dto.response.GoToNextPageResponse;
 import it.cdc.be.webscraper.dto.response.ParsePageServiceResponse;
 import it.cdc.be.webscraper.exception.ScraperException;
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
+import javax.validation.constraints.NotNull;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -80,7 +80,7 @@ public class ScraperUtils {
         return response;
     }
 
-    public boolean isWebsiteFilterValid(@Nonnull String filter){
+    public boolean isWebsiteFilterValid(@NotNull String filter){
         return websiteSelectorModel.getMap().containsKey(filter);
     }
 
@@ -104,7 +104,7 @@ public class ScraperUtils {
 
         List<HtmlElement> elements = page.getByXPath(type.getItems());
         for(HtmlElement el: elements){
-            if(el.getVisibleText().isBlank())
+            if(el.getVisibleText().isEmpty())
                 continue;
 
             try {
@@ -113,31 +113,31 @@ public class ScraperUtils {
                 logger.debug(el.getVisibleText().replace('\n', ';'));
                 String title = ((HtmlElement) el.getFirstByXPath(type.getTitle())).getVisibleText().trim();
                 String link = ((HtmlElement) el.getFirstByXPath(type.getLink())).getAttribute(("href")).trim();
-                if(!link.isBlank() && link.matches("^/.*")){
+                if(!link.isEmpty() && link.matches("^/.*")){
                     logger.debug("link: {}, base: {}", link, type.getUrl());
                     link = baseUrl + link;
                 }
 
                 String image = null;
-                if (type.getImage() != null && !type.getImage().isBlank()) {
-                    if (!el.getAttribute("data-back").isBlank()) {
+                if (type.getImage() != null && !type.getImage().isEmpty()) {
+                    if (!el.getAttribute("data-back").isEmpty()) {
                         image = el.getAttribute("data-back");
                     } else {
                         HtmlElement imgElement = el.getFirstByXPath(type.getImage());
                         if (imgElement != null) {
                             image = imgElement.getAttribute("src").trim();
-                            if (image.isBlank()) {
+                            if (image.isEmpty()) {
                                 // only for blog.osservatori
                                 image = imgElement.getAttribute("style")
                                         .trim()
                                         .replace("background-image:url(", "")
                                         .replace(")", "");
                             }
-                            if (!image.isBlank() && image.startsWith("data:image")) {
+                            if (!image.isEmpty() && image.startsWith("data:image")) {
                                 image = imgElement.getAttribute("data-src");
                             }
 
-                            if (!image.isBlank() && image.matches("^/.*")) {
+                            if (!image.isEmpty() && image.matches("^/.*")) {
                                 image = baseUrl + image;
                             }
                             logger.debug("{} -> {}", type.getKey(), image);
@@ -146,13 +146,13 @@ public class ScraperUtils {
                 }
 
                 String body = null;
-                if (type.getBody() != null && !type.getBody().isBlank()) {
+                if (type.getBody() != null && !type.getBody().isEmpty()) {
                     logger.debug("url: {}, xpath: {}, element: {}", type.getUrl(), type.getBody(), el.getVisibleText());
                     body = ((HtmlElement) el.getFirstByXPath(type.getBody())).getVisibleText().trim().replaceFirst("read more$","").replaceFirst("more$","").trim();
                     body = body.substring(0, Math.min(200, body.length()));
                 }
                 String category = null;
-                if (type.getCategory() != null && !type.getCategory().isBlank()) {
+                if (type.getCategory() != null && !type.getCategory().isEmpty()) {
                     HtmlElement categoryElement = el.getFirstByXPath(type.getCategory());
                     if(categoryElement != null)
                         category = categoryElement.getVisibleText().trim();
@@ -165,7 +165,7 @@ public class ScraperUtils {
                 data.setCategory(category);
 
                 String date = ((HtmlElement) el.getFirstByXPath(type.getDate())).getVisibleText().trim();
-                if (!date.isBlank()) {
+                if (!date.isEmpty()) {
                     try {
                         DateFormat format = new SimpleDateFormat(type.getDateFormatter(), Locale.forLanguageTag(type.getDateLocale()));
                         LocalDate dateArticle = format.parse(date).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();

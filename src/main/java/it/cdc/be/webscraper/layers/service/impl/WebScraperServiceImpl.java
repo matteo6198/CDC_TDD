@@ -15,9 +15,6 @@ import it.cdc.be.webscraper.layers.service.WebScraperService;
 import it.cdc.be.webscraper.repository.ScraperRepository;
 import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
 import it.cdc.be.webscraper.utils.ScraperUtils;
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -30,6 +27,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -139,7 +139,7 @@ public class WebScraperServiceImpl implements WebScraperService {
     }
 
     @Override
-    public GetAllDataResponse getAllData(@Nonnull GetAllDataRequest request) throws ScraperException {
+    public GetAllDataResponse getAllData(@NotNull GetAllDataRequest request) throws ScraperException {
         Page<ScrapedDataEntity> allData;
         List<String> filters = request.getWebsiteFilter();
         if(filters != null && !filters.stream().allMatch(el->scraperUtils.isWebsiteFilterValid(el))){
