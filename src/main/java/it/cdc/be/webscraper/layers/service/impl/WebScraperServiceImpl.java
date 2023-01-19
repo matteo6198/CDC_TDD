@@ -147,29 +147,20 @@ public class WebScraperServiceImpl implements WebScraperService {
             throw new ScraperException();
         }
         // check date
-        final String requestMonth = request.getMonth();
-        int year = -1;
-        int month = -1;
+        String requestMonth = request.getMonth();
         if(requestMonth != null){
-            if(!requestMonth.matches("^\\d{4}-[01]\\d$")){
-                logger.error("Wrong month format");
+            if(!requestMonth.matches("^\\d{4}-((0[1-9])|(1[12]))$")){
+                logger.error("Wrong month format {}", requestMonth);
                 throw new ScraperException();
             }
-            String[] fields = requestMonth.split("-");
-            year = Integer.parseInt(fields[0]);
-            month = Integer.parseInt(fields[1]);
-            if(month > 12 || month <= 0){
-                logger.error("Invalid month {}", month);
-                throw new ScraperException();
-            }
-            if(year <= 0){
-                logger.error("Invalid month {}", month);
-                throw new ScraperException();
-            }
-            if(scraperUtils.getOldestDatePossible().format(ScraperUtils.DATE_YEAR_MONTH_FORMATTER).compareTo(requestMonth) > 0){
+
+            String oldestDateString = scraperUtils.getOldestDatePossible().format(ScraperUtils.DATE_YEAR_MONTH_FORMATTER);
+            if(oldestDateString.compareTo(requestMonth) > 0){
                 logger.error("Date too old {}", requestMonth);
                 throw new ScraperException();
             }
+        } else{
+            requestMonth = "-1";
         }
 
         Pageable pagination;
@@ -182,7 +173,7 @@ public class WebScraperServiceImpl implements WebScraperService {
         if(filters == null || filters.isEmpty()) {
             filters = new ArrayList<>(websiteSelectorModel.getMap().keySet());
         }
-        allData = scraperRepository.findScrapedDataByWebsite(filters, year, month, pagination);
+        allData = scraperRepository.findScrapedDataByWebsite(filters, requestMonth, pagination);
 
 
         List<ScrapedData> retrievedData = allData.stream()
