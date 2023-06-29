@@ -5,6 +5,7 @@
         <classes>
             <!-- <class name="it.cdc.be.webscraper.WebScraperApplicationTests" /> -->
             <class name="it.cdc.be.webscraper.ScraperServiceTests" />
+            <class name="it.cdc.be.webscraper.IntegrationTests"/>
         </classes>
     </test>
 </suite>

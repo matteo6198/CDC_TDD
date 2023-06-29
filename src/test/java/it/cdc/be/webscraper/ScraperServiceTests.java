@@ -19,6 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -119,6 +120,14 @@ public class ScraperServiceTests extends AbstractTestNGSpringContextTests {
                 WireMock.aResponse().withStatus(200).withHeader("content-type","text/html")
                         .withBody(new BufferedReader( new InputStreamReader(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream("TestWebsite7.html")))).lines().collect(Collectors.joining())
         )));
+    }
+
+    @AfterClass()
+    void clean(){
+        wireMockServer.stop();
+        wireMockServer.shutdown();
+        postgreSQLContainer.stop();
+        postgreSQLContainer.close();
     }
 
     @Test()
