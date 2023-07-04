@@ -6,8 +6,8 @@ pipeline {
             steps {
               withSonarQubeEnv('sonarqube') {
                 withMaven {
-                  sh 'mvn clean package sonar:sonar'
-                  sh" ${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=matteo6198_CDC_TDD_AYkGHfQxaje6Mmtcnbqh -Dsonar.sources=. "
+                  sh "mvn clean package sonar:sonar -Dsonar.projectKey=matteo6198_CDC_TDD_AYkGHfQxaje6Mmtcnbqh -Dsonar.projectName='CDC_TDD' -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token=sqp_6f50e91139e63b5b5ac63bfaaa5106e2a391ac35"
+                  sh" ${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=matteo6198_CDC_TDD_AYkGHfQxaje6Mmtcnbqh -Dsonar.sources=. -Dsonar.projectName='CDC_TDD' -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token=sqp_6f50e91139e63b5b5ac63bfaaa5106e2a391ac35"
                 }
               }
             }
