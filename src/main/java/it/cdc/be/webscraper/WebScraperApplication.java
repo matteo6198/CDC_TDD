@@ -6,10 +6,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableJpaRepositories("it.cdc.be.webscraper.*")
 @ComponentScan(basePackages = { "it.cdc.be.webscraper.*" })
 @EntityScan("it.cdc.be.webscraper.*")
 @EnableConfigurationProperties
