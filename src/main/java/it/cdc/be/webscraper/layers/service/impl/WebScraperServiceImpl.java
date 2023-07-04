@@ -1,29 +1,17 @@
 package it.cdc.be.webscraper.layers.service.impl;
 
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import it.cdc.be.webscraper.configuration.model.WebsiteSelectorModel;
-import it.cdc.be.webscraper.dto.domain.Pagination;
-import it.cdc.be.webscraper.dto.domain.ScrapedData;
-import it.cdc.be.webscraper.dto.domain.Selector;
 import it.cdc.be.webscraper.dto.request.GetAllDataRequest;
 import it.cdc.be.webscraper.dto.response.GetAllDataResponse;
-import it.cdc.be.webscraper.dto.response.GoToNextPageResponse;
-import it.cdc.be.webscraper.dto.response.ParsePageServiceResponse;
 import it.cdc.be.webscraper.exception.ScraperException;
 import it.cdc.be.webscraper.layers.service.WebScraperService;
-import it.cdc.be.webscraper.repository.ScraperRepository;
-import it.cdc.be.webscraper.repository.entity.ScrapedDataEntity;
 import it.cdc.be.webscraper.utils.ScraperUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -31,11 +19,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class WebScraperServiceImpl implements WebScraperService {
@@ -44,8 +28,8 @@ public class WebScraperServiceImpl implements WebScraperService {
     @Value("#{'${scraper.urls}'.split(';\\s*')}")
     private List<String> urlsToBeScraped;
 
-    @Autowired
-    private ScraperRepository scraperRepository;
+    //@Autowired
+    //private ScraperRepository scraperRepository;
 
     @Autowired
     private ScraperUtils scraperUtils;
@@ -68,7 +52,7 @@ public class WebScraperServiceImpl implements WebScraperService {
     @org.springframework.context.event.EventListener(ApplicationReadyEvent.class)
     public void getNewData() {
         logger.info("Scraping new data");
-        List<ScrapedDataEntity> scrapedDataEntities = new ArrayList<>();
+        /*List<ScrapedDataEntity> scrapedDataEntities = new ArrayList<>();
 
         for(String url:urlsToBeScraped){
             long cnt = 0;
@@ -135,12 +119,13 @@ public class WebScraperServiceImpl implements WebScraperService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        scraperRepository.saveAll(dataToBeStored);
+        scraperRepository.saveAll(dataToBeStored);*/
     }
 
     @Override
     public GetAllDataResponse getAllData(@NotNull GetAllDataRequest request) throws ScraperException {
-        Page<ScrapedDataEntity> allData;
+        GetAllDataResponse response = new GetAllDataResponse();
+        /*Page<ScrapedDataEntity> allData;
         List<String> filters = request.getWebsiteFilter();
         if(filters != null && !filters.stream().allMatch(el->scraperUtils.isWebsiteFilterValid(el))){
             logger.error("Invalid filters");
@@ -183,7 +168,6 @@ public class WebScraperServiceImpl implements WebScraperService {
                     return data;
                 }).collect(Collectors.toList());
 
-        GetAllDataResponse response = new GetAllDataResponse();
         response.setScrapedDataList(retrievedData);
 
         Pagination paginationOut = new Pagination();
@@ -194,8 +178,8 @@ public class WebScraperServiceImpl implements WebScraperService {
             paginationOut.setPageLength(Integer.MAX_VALUE);
         }
         paginationOut.setTotalPages(allData.getTotalPages());
-
-        response.setPagination(paginationOut);
+*/
+        //response.setPagination(paginationOut);
         return response;
     }
 
@@ -206,6 +190,6 @@ public class WebScraperServiceImpl implements WebScraperService {
 
         LocalDate oldestDate = scraperUtils.getOldestDatePossible();
 
-        scraperRepository.deleteScrapedDataByDateArticle(oldestDate);
+        //scraperRepository.deleteScrapedDataByDateArticle(oldestDate);
     }
 }
